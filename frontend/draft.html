@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CESSTIG - Admin Dashboard</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- FullCalendar -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.0/main.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/admin.css">
+    
+    <style>
+        /* Enhanced Dashboard Styles */
+        .stat-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .activity-item {
+            transition: background-color 0.2s;
+        }
+        .activity-item:hover {
+            background-color: #f8f9fa;
+        }
+        .quick-action-card {
+            transition: all 0.3s ease;
+        }
+        .quick-action-card:hover {
+            background-color: #f0f8ff;
+            transform: scale(1.02);
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .loading .loading-spinner {
+            display: inline-block;
+        }
+        .loading .content {
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="logo-container d-flex align-items-center justify-content-between p-3">
+                <div class="d-flex align-items-center">
+                    <img src="img/logo.png" alt="CESSTIG Logo" class="img-fluid">
+                    <span class="logo-text ms-2">CESSTIG</span>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                <div class="menu-item active" data-target="#dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </div>
+                <div class="menu-item" data-target="#students">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>Students</span>
+                </div>
+                <div class="menu-item" data-target="#quizzes">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Tests & Quizzes</span>
+                </div>
+                <div class="menu-item" data-target="#approvals">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Approvals</span>
+                </div>
+                <div class="menu-item" data-target="#administrators">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Administrators</span>
+                </div>
+                <div class="menu-item" data-target="#submissions">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Submissions</span>
+                </div>
+                <div class="menu-item" data-target="#profile">
+                    <i class="fas fa-user"></i>
+                    <span>My Profile</span>
+                </div>
+                <div class="menu-item" data-target="#settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </div>
+                <div class="menu-item" id="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content flex-grow-1">
+            <!-- Header -->
+            <header class="header d-flex align-items-center justify-content-between p-3 bg-white border-bottom sticky-top">
+                <button type="button" id="sidebar-collapse" class="submit-btn btn-primary d-lg-none" title="Toggle Sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="welcome">
+                    <span class="welcome-text">Welcome To CESSTIG</span>
+                    <span class="welcome-subtext ms-2">Admin Dashboard</span>
+                </div>
+                <div class="header-right d-flex align-items-center">
+                    <div class="notification-icon position-relative me-3">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge orange position-absolute top-0 start-100 translate-middle rounded-pill" id="notification-count">0</span>
+                    </div>
+                    <div class="user-info d-flex align-items-center">
+                        <img src="img/user.jpg" alt="User" class="img-fluid rounded-circle user-image" id="user-avatar">
+                        <span class="user-name ms-2 d-none d-md-block" id="user-name">Admin</span>
+                    </div>
+                </div>
+            </header>
+
+            <!----------------------------------------------------- Dashboard Content ---------------------------------------------------------------->
+            <div class="dashboard-content" id="dashboard">
+                <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                    <div class="breadcrumb">
+                        <span class="breadcrumb-item">Home</span>
+                        <span class="breadcrumb-separator">›</span>
+                        <span class="breadcrumb-item active">Dashboard</span>
+                    </div>
+                    <div class="date-time">
+                        <span id="current-date"></span> | <span id="current-time"></span>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-cards row">
+                    <!-- Students Card -->
+                    <div class="col-12 col-sm-6 col-lg-3 mb-4">
+                        <div class="stat-card" data-target="#students">
+                            <div class="stat-icon green">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Total Students</div>
+                                <div class="stat-value" id="students-count">
+                                    <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                                    <span class="content">0</span>
+                                </div>
+                                <div class="stat-trend" id="students-trend"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Approvals Card -->
+                    <div class="col-12 col-sm-6 col-lg-3 mb-4">
+                        <div class="stat-card" data-target="#approvals">
+                            <div class="stat-icon blue">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Pending Approvals</div>
+                                <div class="stat-value" id="pending-approvals-count">
+                                    <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                                    <span class="content">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quizzes Card -->
+                    <div class="col-12 col-sm-6 col-lg-3 mb-4">
+                        <div class="stat-card" data-target="#quizzes">
+                            <div class="stat-icon yellow">
+                                <i class="fas fa-question-circle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Active Quizzes</div>
+                                <div class="stat-value" id="quizzes-count">
+                                    <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                                    <span class="content">0</span>
+                                </div>
+                                <div class="stat-trend" id="quizzes-trend"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submissions Card -->
+                    <div class="col-12 col-sm-6 col-lg-3 mb-4">
+                        <div class="stat-card" data-target="#submissions">
+                            <div class="stat-icon purple">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Submissions</div>
+                                <div class="stat-value" id="submissions-count">
+                                    <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                                    <span class="content">0</span>
+                                </div>
+                                <div class="stat-trend" id="submissions-trend"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Calendar -->
+                    <div class="col-12 col-md-4 mb-4">
+                        <div class="calendar-card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h3>Calendar</h3>
+                                <div class="card-actions">
+                                    <button class="action-btn green" id="add-event-btn" title="Add Event">
+                                        <i class="fas fa-plus-circle"></i>
+                                    </button>
+                                    <button class="action-btn red" id="toggle-calendar-btn" title="Toggle Calendar">
+                                        <i class="fas fa-minus-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="calendar"></div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activities -->
+                    <div class="col-12 col-md-4 mb-4">
+                        <div class="activities-card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h3>Recent Activities</h3>
+                                <div class="card-actions">
+                                    <button class="action-btn green" id="refresh-activities-btn" title="Refresh">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    <button class="action-btn red" id="clear-activities-btn" title="Clear">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="activities-list" id="activities-list">
+                                <div class="activity-item loading">
+                                    <div class="activity-indicator"></div>
+                                    <div class="activity-details">
+                                        <div class="activity-time">Loading activities...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="col-12 col-md-4 mb-4">
+                        <div class="quick-actions-card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h3>Quick Actions</h3>
+                                <div class="card-actions">
+                                    <button class="action-btn green" id="refresh-actions-btn" title="Refresh">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="quick-actions-grid">
+                                <!-- Approve Students -->
+                                <div class="quick-action-card" data-target="#approvals">
+                                    <div class="action-icon green">
+                                        <i class="fas fa-user-check"></i>
+                                    </div>
+                                    <div class="action-info">
+                                        <h5>Approve Students</h5>
+                                        <p>Review pending student applications</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Create Quiz -->
+                                <div class="quick-action-card" data-target="#quizzes" id="create-quiz-action">
+                                    <div class="action-icon blue">
+                                        <i class="fas fa-plus-circle"></i>
+                                    </div>
+                                    <div class="action-info">
+                                        <h5>Create Quiz</h5>
+                                        <p>Add a new quiz to the system</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Manage Students -->
+                                <div class="quick-action-card" data-target="#students">
+                                    <div class="action-icon yellow">
+                                        <i class="fas fa-users-cog"></i>
+                                    </div>
+                                    <div class="action-info">
+                                        <h5>Manage Students</h5>
+                                        <p>View and edit student accounts</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- View Submissions -->
+                                <div class="quick-action-card" data-target="#submissions">
+                                    <div class="action-icon purple">
+                                        <i class="fas fa-clipboard-check"></i>
+                                    </div>
+                                    <div class="action-info">
+                                        <h5>View Submissions</h5>
+                                        <p>Review student quiz attempts</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other Content Sections (hidden by default) -->
+            <!--------------------------------------------------------- Students Content ---------------------------------------------------------------->
+            <div class="dashboard-content" id="students" style="display: none;">
+                <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                    <div class="breadcrumb">
+                        <span class="breadcrumb-item">Home</span>
+                        <span class="breadcrumb-separator">›</span>
+                        <span class="breadcrumb-item active">Students</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" id="export-students-btn">
+                            <i class="fas fa-file-export me-2"></i>Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Student Filters -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input type="text" id="search-students" class="form-control" placeholder="Search by name or email...">
+                            </div>
+                            <div class="col-md-3">
+                                <select id="status-filter" class="form-select">
+                                    <option value="">All Statuses</option>
+                                    <option value="active">Active</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-secondary w-100" id="reset-filters-btn">
+                                    <i class="fas fa-undo me-2"></i>Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Students Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="students-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Status</th>
+                                        <th>Quizzes Assigned</th>
+                                        <th>Last Active</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="students-table-body">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted" id="students-pagination-info">
+                        Showing 0 to 0 of 0 entries
+                    </div>
+                    <nav>
+                        <ul class="pagination mb-0" id="students-pagination">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" id="students-prev-btn">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item active">
+                                <a class="page-link" href="#">1</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#" id="students-next-btn">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+
+            <!--------------------------------------------------------- Quizzes Content ---------------------------------------------------------------->
+            <div class="dashboard-content" id="quizzes" style="display: none;">
+                <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                    <div class="breadcrumb">
+                        <span class="breadcrumb-item">Home</span>
+                        <span class="breadcrumb-separator">›</span>
+                        <span class="breadcrumb-item active">Quizzes</span>
+                    </div>
+                    <div class="actions">
+                        <a href="quiz.html" class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-2"></i>Create Quiz
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Quiz Filters -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input type="text" id="search-quizzes" class="form-control" placeholder="Search by title or description...">
+                            </div>
+                            <div class="col-md-3">
+                                <select id="status-filter" class="form-select">
+                                    <option value="">All Statuses</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-secondary w-100" id="reset-filters-btn">
+                                    <i class="fas fa-undo me-2"></i>Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quizzes Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="quizzes-table">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Questions</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Submissions</th>
+                                        <th>Avg Score</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="quizzes-table-body">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted" id="quizzes-pagination-info">
+                        Showing 0 to 0 of 0 entries
+                    </div>
+                    <nav>
+                        <ul class="pagination mb-0" id="quizzes-pagination">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" id="quizzes-prev-btn">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item active">
+                                <a class="page-link" href="#">1</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#" id="quizzes-next-btn">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+
+            <!--------------------------------------------------------- Approvals Content ---------------------------------------------------------------->
+            <div class="dashboard-content" id="approvals" style="display: none;">
+                <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                    <div class="breadcrumb">
+                        <span class="breadcrumb-item">Home</span>
+                        <span class="breadcrumb-separator">›</span>
+                        <span class="breadcrumb-item active">Approvals</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" id="bulk-approve-btn">
+                            <i class="fas fa-check-double me-2"></i>Bulk Approve
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Approvals Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="approvals-table">
+                                <thead>
+                                    <tr>
+                                        <th width="40px">
+                                            <input type="checkbox" id="select-all-approvals">
+                                        </th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Applied On</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="approvals-table-body">
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted" id="approvals-pagination-info">
+                        Showing 0 to 0 of 0 entries
+                    </div>
+                    <nav>
+                        <ul class="pagination mb-0" id="approvals-pagination">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" id="approvals-prev-btn">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item active">
+                                <a class="page-link" href="#">1</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#" id="approvals-next-btn">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+
+            <!--------------------------------------------------------- Submissions Content ---------------------------------------------------------------->
+            <div class="dashboard-content" id="submissions" style="display: none;">
+                <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                    <div class="breadcrumb">
+                        <span class="breadcrumb-item">Home</span>
+                        <span class="breadcrumb-separator">›</span>
+                        <span class="breadcrumb-item active">Submissions</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" id="export-submissions-btn">
+                            <i class="fas fa-file-export me-2"></i>Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submission Filters -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <input type="text" id="search-submissions" class="form-control" placeholder="Search by student or quiz...">
+                            </div>
+                            <div class="col-md-3">
+                                <select id="quiz-filter" class="form-select">
+                                    <option value="">All Quizzes</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select id="status-filter" class="form-select">
+                                    <option value="">All Results</option>
+                                    <option value="passed">Passed</option>
+                                    <option value="failed">Failed</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-secondary w-100" id="reset-filters-btn">
+                                    <i class="fas fa-undo me-2"></i>Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submissions Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="submissions-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Quiz</th>
+                                        <th>Submitted</th>
+                                        <th>Score</th>
+                                        <th>Percentage</th>
+                                        <th>Result</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="submissions-table-body">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted" id="submissions-pagination-info">
+                        Showing 0 to 0 of 0 entries
+                    </div>
+                    <nav>
+                        <ul class="pagination mb-0" id="submissions-pagination">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" id="submissions-prev-btn">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item active">
+                                <a class="page-link" href="#">1</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="#" id="submissions-next-btn">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+
+            <!--------------------------------------------------------- Profile Content ---------------------------------------------------------------->
+            <div class="dashboard-content" id="profile" style="display: none;">
+                <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                    <div class="breadcrumb">
+                        <span class="breadcrumb-item">Home</span>
+                        <span class="breadcrumb-separator">›</span>
+                        <span class="breadcrumb-item active">My Profile</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" id="edit-profile-btn">
+                            <i class="fas fa-edit me-2"></i>Edit Profile
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Profile Card -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 text-center">
+                                <div class="profile-image-container mb-3">
+                                    <img src="img/user.jpg" alt="Profile" class="img-thumbnail rounded-circle mb-3" id="profile-image" width="150">
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary" id="change-profile-image-btn">
+                                            <i class="fas fa-camera me-2"></i>Change
+                                        </button>
+                                        <input type="file" id="profile-image-input" accept="image/*" style="display: none;">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="profile-details">
+                                    <h3 id="profile-name">Loading...</h3>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Email:</strong> <span id="profile-email">Loading...</span></p>
+                                            <p><strong>Phone:</strong> <span id="profile-phone">Loading...</span></p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Role:</strong> <span id="profile-role">Loading...</span></p>
+                                            <p><strong>Last Login:</strong> <span id="profile-last-login">Loading...</span></p>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="profile-stats">
+                                        <div class="row">
+                                            <div class="col-4 text-center">
+                                                <h5 id="profile-quizzes-created">0</h5>
+                                                <p class="text-muted">Quizzes Created</p>
+                                            </div>
+                                            <div class="col-4 text-center">
+                                                <h5 id="profile-students-approved">0</h5>
+                                                <p class="text-muted">Students Approved</p>
+                                            </div>
+                                            <div class="col-4 text-center">
+                                                <h5 id="profile-submissions-reviewed">0</h5>
+                                                <p class="text-muted">Submissions Reviewed</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Change Password Card -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5>Change Password</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="change-password-form">
+                            <div class="mb-3">
+                                <label for="current-password" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="current-password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="new-password" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="new-password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirm-password" class="form-label">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirm-password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="save-password-btn">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals Container -->
+    <div id="modals-container"></div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- FullCalendar -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.0/main.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="js/common.js"></script>
+    <script src="js/admin/dashboard.js"></script>
+    <script src="js/admin/students.js"></script>
+    <script src="js/admin/quizzes.js"></script>
+    <script src="js/admin/approvals.js"></script>
+    <script src="js/admin/submissions.js"></script>
+    <script src="js/admin/profile.js"></script>
+    
+    <!-- Initialize Dashboard -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Load modals
+            fetch('modals.html')
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('modals-container').innerHTML = html;
+                })
+                .catch(error => console.error('Error loading modals:', error));
+            
+            // Initialize dashboard
+            if (typeof initDashboard === 'function') {
+                initDashboard();
+            }
+        });
+    </script>
+</body>
+</html>

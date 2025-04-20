@@ -1,0 +1,135 @@
+    <!-- Modals -->
+    <!-- Create Quiz Modal -->
+    <div class="modal fade w-100" id="createQuizModal" tabindex="-1" aria-labelledby="createQuizModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createQuizModalLabel">Create New Quiz</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="create-quiz-form">
+                        <div class="mb-3">
+                            <label for="quiz-title" class="form-label">Quiz Title</label>
+                            <input type="text" class="form-control" id="quiz-title" placeholder="Enter quiz title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quiz-description" class="form-label">Description</label>
+                            <textarea class="form-control" id="quiz-description" rows="3" placeholder="Enter quiz description"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quiz-questions" class="form-label">Number of Questions</label>
+                            <input type="number" class="form-control" id="quiz-questions" placeholder="Enter number of questions" required>
+                        </div>
+                    </form>
+                </div>
+    
+                <!------Question input with options and actions to choose correct answer-->
+                <div class="modal-body" id="quiz-questions-container">
+                    <div class="mb-3 question-item">
+                        <label for="question-text" class="form-label">Question</label>
+                        <input type="text" class="form-control" id="question-text" placeholder="Enter question text" required>
+    
+                        <div class="options-container mt-2">
+                            <div class="option-item mb-2">
+                                <input type="text" class="form-control" placeholder="Option 1" required>
+                                <button type="button" class="btn btn-danger remove-option-btn"><i class="fas fa-minus-circle"></i></button>
+                            </div>
+                            <div class="option-item mb-2">
+                                <input type="text" class="form-control" placeholder="Option 2" required>
+                                <button type="button" class="btn btn-danger remove-option-btn"><i class="fas fa-minus-circle"></i></button>
+                            </div>
+                            <div class="option-item mb-2">
+                                <input type="text" class="form-control" placeholder="Option 3" required>
+                                <button type="button" class="btn btn-danger remove-option-btn"><i class="fas fa-minus-circle"></i></button>
+                            </div>
+    
+                            <div class="option-item mb-2">
+                                <input type="text" class="form-control" placeholder="Option 4" required>
+                                <button type="button" class="btn btn-danger remove-option-btn"><i class="fas fa-minus-circle"></i></button>
+                            </div>
+    
+                            <!----Add option button-->
+                            <button type="button" class="btn btn-primary add-option-btn"><i class="fas fa-plus-circle"></i> Add Option</button>
+                        </div>
+                    </div>
+    
+                    <button type="button" class="btn btn-primary" id="add-question-btn"><i class="fas fa-plus-circle"></i> Add Question</button>
+    
+                    <!---modal footer-->
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" form="create-quiz-form">Create Quiz</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Profile Modal -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-profile-form">
+                        <div class="mb-3">
+                            <label for="profile-name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="profile-name" placeholder="Enter your name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="profile-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="profile-email" placeholder="Enter your email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="profile-phone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="profile-phone" placeholder="Enter your phone number">
+                        </div>
+                        <div class="mb-3">
+                            <label for="profile-position" class="form-label">Position</label>
+                            <input type="text" class="form-control" id="profile-position" placeholder="Enter your position">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" form="edit-profile-form">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Compose Message Modal -->
+    <div class="modal fade" id="composeMessageModal" tabindex="-1" aria-labelledby="composeMessageModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="composeMessageModalLabel">Compose Message</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="compose-message-form">
+                        <div class="mb-3">
+                            <label for="message-recipient" class="form-label">Recipient</label>
+                            <input type="text" class="form-control" id="message-recipient" placeholder="Enter recipient name or email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="message-subject" class="form-label">Subject</label>
+                            <input type="text" class="form-control" id="message-subject" placeholder="Enter message subject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="message-body" class="form-label">Message</label>
+                            <textarea class="form-control" id="message-body" rows="5" placeholder="Enter your message" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" form="compose-message-form">Send Message</button>
+                </div>
+            </div>
+        </div>
+    </div>

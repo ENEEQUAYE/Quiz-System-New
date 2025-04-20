@@ -1,0 +1,170 @@
+:root {
+    --primary-color: #042954;
+    --secondary-color: #faa11d;
+    --light-bg: #f8f9fa;
+    --text-color: #333;
+    --error-bg: #f8d7da;
+    --error-border: #f5c6cb;
+    --error-text: #721c24;
+}
+
+/* Body Styling */
+body {
+    background: linear-gradient(rgba(4, 41, 84, 0.8), rgba(4, 41, 84, 0.8)), 
+                url('../img/logo.png') center/cover no-repeat;
+    color: var(--text-color);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Card Styling */
+.card {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    background: white;
+    width: 100%;
+    max-width: 500px;
+    border: none;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.card-body {
+    padding: 2rem;
+}
+.card-body img{
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+}
+
+/* Form Inputs */
+.form-control {
+    border-radius: 5px;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-control:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 0.25rem rgba(250, 161, 29, 0.25);
+}
+
+/* Button Styling */
+.btn-primary {
+    background-color: var(--primary-color);
+    border: none;
+    padding: 10px;
+    font-size: 16px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary:hover {
+    background-color: var(--secondary-color);
+    transform: translateY(-2px);
+}
+
+/* Input Group */
+.input-group {
+    position: relative;
+}
+
+.input-group .btn-outline-secondary {
+    border-color: #ced4da;
+    transition: all 0.3s;
+}
+
+.input-group .btn-outline-secondary:hover {
+    background-color: #e9ecef;
+}
+
+/* Error Message */
+#errorMessage {
+    font-size: 14px;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 15px;
+    display: none;
+    background-color: var(--error-bg);
+    border: 1px solid var(--error-border);
+    color: var(--error-text);
+}
+
+#errorMessage.show {
+    display: block;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Forgot Password Link */
+#forgotPassword {
+    font-size: 14px;
+    color: var(--primary-color);
+    transition: color 0.3s;
+}
+
+#forgotPassword:hover {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+/* Responsive Design */
+@media (max-width: 576px) {
+    .card {
+        width: 100%;
+    }
+    
+    body {
+        background: var(--primary-color);
+        padding: 15px;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+}
+
+/* Button Ripple Effect */
+.btn-primary:after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.btn-primary:focus:not(:active)::after {
+    animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(20, 20);
+        opacity: 0;
+    }
+}
