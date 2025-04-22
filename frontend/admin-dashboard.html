@@ -17,6 +17,7 @@
     
 </head>
 <body>
+    <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
     <div class="dashboard-container d-flex">
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
@@ -44,7 +45,7 @@
                 </div>
                 <div class="menu-item" data-target="#approvals">
                     <i class="fas fa-check-circle"></i>
-                    <span>Approvals</span>
+                    <span>Pending Approvals</span>
                 </div>
                 <div class="menu-item" data-target="#administrators">
                     <i class="fas fa-user-tie"></i>
@@ -70,10 +71,7 @@
             </div>
         </div>
 
-        <script>
-            //logout function
-            
-        </script>
+      
 
         <!-- Main Content -->
         <div class="main-content flex-grow-1">
@@ -101,6 +99,9 @@
                     </div>
                 </div>
             </header>
+
+            <!-- Dynamic Content Area -->
+           
 
             <!----------------------------------------------------- Dashboard Content ---------------------------------------------------------------->
             <div class="dashboard-content" id="dashboard">
@@ -204,7 +205,7 @@
                             </div>
                             <div class="activities-list" id="activities-list">
                                 <div class="activity-item" id="activity-item">
-                                    <div class="activity-indicator purple" id="activity-indicator"></div>
+                                    <div class="activity-indicator" id="activity-indicator"></div>
                                     <div class="activity-details" id="activity-details">
                                         <div class="activity-time" id="activity-time">Demo(9 minutes ago)</div>
                                         <div class="activity-text" id="activity-text">Demo(You approved a student)</div>
@@ -226,7 +227,7 @@
                             </div>
                             <div class="row">
                                 <!-----Approve students-->
-                                <div class="stat-card" data-target="#approvals">
+                                <div class="quick-action-stat-card" data-target="#approvals">
                                     <div class="stat-icon green">
                                         <i class="fas fa-user-plus"></i>
                                     </div>
@@ -236,7 +237,7 @@
                                     </div>
                                 </div>
                                 <!-------Create Quiz------>
-                                <div class="stat-card" data-target="#quizzes">
+                                <div class="quick-action-stat-card" data-target="#quizzes">
                                     <div class="stat-icon blue">
                                         <i class="fas fa-question-circle"></i>
                                     </div>
@@ -246,7 +247,7 @@
                                     </div>
                                 </div>
                                 <!-------Manage Students------>
-                                <div class="stat-card" data-target="#students">
+                                <div class="quick-action-stat-card" data-target="#students">
                                     <div class="stat-icon yellow">
                                         <i class="fas fa-user-graduate"></i>
                                     </div>
@@ -256,7 +257,7 @@
                                     </div>
                                 </div>
                                 <!--------Add Administrator------>
-                                <div class="stat-card" data-target="#administrators">
+                                <div class="quick-action-stat-card" data-target="#administrators">
                                     <div class="stat-icon cyan">
                                         <i class="fas fa-user-tie"></i>
                                     </div>
@@ -288,6 +289,7 @@
                 </div>
 
                 <!---other contents-->
+                <div class="table-responsive">
                 <table id="students-table" class="table table-striped table-bordered">
                     <thead>
                         <tr>
@@ -301,6 +303,7 @@
                     </thead>
                     <tbody id="students-table-body"></tbody>
                 </table>
+               </div>
 
                 <!-- Pagination -->
                 <div class="pagination d-flex justify-content-center">
@@ -336,6 +339,7 @@
                 </div>
 
                 <!-----Quizzes table-->
+                <div class="table-responsive">
                 <table id="quizzes-table" class="table table-striped table-bordered">
                     <thead>
                         <tr>
@@ -349,6 +353,7 @@
                     </thead>
                     <tbody id="quizzes-table-body"></tbody>
                 </table>
+                </div>
 
                 <!-- Pagination -->
                 <div class="pagination d-flex justify-content-center">
@@ -374,6 +379,7 @@
                 </div>
 
                 <!-- Approvals Table -->
+                <div class="table-responsive">
                  <table id="approvals-table" class="table table-striped table-bordered">
                     <thead>
                         <tr>
@@ -387,6 +393,7 @@
                     </thead>
                     <tbody id="approvals-table-body"></tbody>
                 </table>
+                </div>
 
                 <!-- Pagination -->
                 <div class="pagination d-flex justify-content-center">
@@ -416,6 +423,7 @@
                 </div>
 
                 <!-- Administrators Table -->
+                <div class="table-responsive">
                 <table id="administrators-table" class="table table-striped table-bordered">
                     <thead>
                         <tr>
@@ -428,6 +436,7 @@
                     </thead>
                     <tbody id="administrators-table-body"></tbody>
                 </table>
+                </div>
 
                 <!-- Pagination -->
                 <div class="pagination d-flex justify-content-center">
@@ -448,21 +457,42 @@
                 </div>
 
                 <!-- Profile Information -->
-                <div class="profile-info mb-4">
-                    <div class="profile-image-container">
-                        <img src="img/user.jpg" alt="User" class="img-fluid rounded-circle profile-image">
-                        <button class="submit-btn btn-secondary" id="change-profile-pic-btn"><i class="fas fa-camera"></i>Change</button>
+            <div class="container p-4" style="max-width: 600px; background-color: white; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 10px;">
+                <div class="profile-info mb-4 d-flex align-items-center">
+                    <div class="profile-image-container text-center me-4">
+                        <img id="profile-pic" src="img/user.jpg" alt="User" class="img-fluid rounded-circle profile-image">
+                        <button class="btn btn-secondary mt-2" id="change-profile-pic-btn">
+                            <i class="fas fa-camera"></i>
+                        </button>
                     </div>
                     <div class="profile-details">
-                        <h3 id="profile-name">Admin</h3>
-                        <p id="profile-email"><i class="fas fa-envelope"></i>Email:</p>
-                        <p id="profile-phone"><i class="fas fa-phone"></i>Phone:</p>
-                        <p id="profile-position"><i class="fas fa-user-tie"></i>Position:</p>
+                        <h3 id="profile-name" class="mb-1">Admin</h3>
+                        <p class="text-muted mb-3" id="profile-role">admin</p>
+                        <div class="profile-detail-item d-flex align-items-center mb-2">
+                            <i class="fas fa-envelope me-2"></i>
+                            <span id="profile-email">Email: admin@example.com</span>
+                        </div>
+                        <div class="profile-detail-item d-flex align-items-center mb-2">
+                            <i class="fas fa-phone me-2"></i>
+                            <span id="profile-phone">Phone: N/A</span>
+                        </div>
+                        <div class="profile-detail-item d-flex align-items-center mb-2">
+                            <i class="fas fa-user-tie me-2"></i>
+                            <span id="profile-position">Position: N/A</span>
+                        </div>
+                        <div class="profile-actions mt-3">
+                            <button class="btn btn-primary me-2" id="edit-profile-btn" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                                <i class="fas fa-edit"></i> Edit Profile
+                            </button>
+                            <button class="btn btn-secondary" id="change-password-btn" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                Change Password
+                            </button>
+                        </div>
                     </div>
-                    <button class="submit-btn btn-primary" id="edit-profile-btn" data-bs-toggle="modal" data-bs-target="#editProfileModal"><i class="fas fa-edit"></i>Edit Profile</button>
                 </div>
             </div>
-
+        </div>
+          
             <!-------------------------------------------------------------------Messages Content------------------------------------------------------------------>
             <div class="dashboard-content" id="messages" style="display: none;">
                 <div class="page-header d-flex justify-content-between align-items-center mb-4">
@@ -526,17 +556,6 @@
      <!-- FullCalendar -->
      <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.0/main.min.js"></script>
      <!-- Custom JS -->
-     <!-- <script src="js/admin/dashboard.js"></script>
-     <script src="js/sidebar.js"></script>
-     <script src="js/admin/students.js"></script>
-     <script src="js/admin/quizzes.js"></script>
-     <script src="js/admin/approvals.js"></script>
-    <script src="js/admin/administrators.js"></script>
-    <script src="js/admin/messages.js"></script>
-    <script src="js/admin/settings.js"></script>
-    <script src="js/admin/profile.js"></script>
-    <script src="js/common.js"></script> -->
-
     <script src="js/admin.js"></script>
 </body>
 </html>

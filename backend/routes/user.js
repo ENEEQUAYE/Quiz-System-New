@@ -230,6 +230,50 @@ router.delete("/:id", auth, async (req, res) => {
   }
 });
 
+// @desc    Update user profile
+// @route   PUT /api/users/profile
+// @access  Private
+router.put("/profile", auth, async (req, res) => {
+  try {
+    const { firstName, lastName, email, phone, position } = req.body;
+
+    // Validate input
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide all required fields",
+      });
+    }
+
+    // Update user
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { firstName, lastName, email, phone, position },
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        position: user.position,
+      },
+    });
+  }
+  catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Could not update profile",
+      error: error.message,
+    });
+  }
+  });
+
 // Get current user
 router.get('/me', auth, async (req, res) => {
     try {

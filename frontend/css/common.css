@@ -525,7 +525,7 @@ body {
 }
 
 .activity-indicator.purple {
-    background-color: #9c27b0;
+    background-color: #01c52c;
 }
 
 .activity-indicator.orange {
@@ -534,7 +534,7 @@ body {
 
 .activity-indicator.green {
     background-color: #4caf50;
-}
+} 
 
 .activity-time {
     font-size: 14px;
@@ -767,9 +767,9 @@ footer{
   }
   
   /* Toast Notifications */
-  .toast {
+  /* .toast {
     margin-bottom: 10px;
-  }
+  } */
   
   /* Search Input */
   #search-courses {
@@ -895,7 +895,7 @@ footer{
     .sidebar.expanded {
        display: none;
     }
-    .btn {
+    .submit-btn {
         font-size: 0.8rem;
         padding: 3px;
     }

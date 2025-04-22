@@ -56,20 +56,17 @@ router.get('/', auth, async (req, res) => {
 
 //Get total quizzes count
 router.get('/count', auth, async (req, res) => {
-  try {
-    const filter = req.user.role === 'admin'
-      ? {}
-      : { _id: { $in: req.user.quizzesAllowed }, isActive: true };
-      const total = await Quiz.countDocuments(filter);
+try {
+    const total = await Quiz.countDocuments({});
     res.json({
       success: true,
-      data: total
+      total
     });
   } catch (error) {
-    console.error('Error fetching quizzes count:', error);
-    res.status(500).json({
+    console.error('Error fetching total quizzes count:', error);
+    res.status(500).json({ 
       success: false,
-      error: 'Server error while fetching quizzes count'
+      error: 'Server error while fetching total quizzes count'
     });
   }
 });
@@ -222,6 +219,59 @@ router.post('/:id/submit', [
     res.status(500).json({ 
       success: false,
       error: 'Server error while submitting quiz' 
+    });
+  }
+});
+
+//Get total individual quiz attempts
+router.get('/:id/attempts', auth, async (req, res) => {
+  try {
+    const quiz = await Quiz.findById(req.params.id);
+    if (!quiz) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Quiz not found' 
+      });
+    }
+
+    // Check access
+    const hasAccess = req.user.role === 'admin' || 
+      (req.user.quizzesAllowed.includes(quiz._id) && quiz.isActive);
+    
+    if (!hasAccess) {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Access to this quiz is restricted' 
+      });
+    }
+
+    const attempts = await Submission.countDocuments({ quiz: quiz._id });
+    res.json({
+      success: true,
+      data: attempts
+    });
+  } catch (error) {
+    console.error('Error fetching quiz attempts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching quiz attempts'
+    });
+  }
+});
+
+//Get total quizzes attempts by all students
+router.get('/attempts', auth, async (req, res) => {
+  try {
+    const attempts = await Submission.countDocuments();
+    res.json({
+      success: true,
+      data: attempts
+    });
+  } catch (error) {
+    console.error('Error fetching total quiz attempts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching total quiz attempts'
     });
   }
 });

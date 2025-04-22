@@ -12,6 +12,7 @@ const UserSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'active', 'rejected'], default: 'pending' },
   profilePicture: { type: String, default: '' },
   phone: { type: String, default: '' },
+  position: { type: String, default: '' },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   approvedAt: { type: Date },
   quizzesAllowed: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Quiz' }],

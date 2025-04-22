@@ -101,6 +101,80 @@
             </div>
         </div>
     </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="change-password-form">
+                        <div class="mb-3">
+                            <label for="current-password" class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="current-password" placeholder="Enter current password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new-password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="new-password" placeholder="Enter new password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm-new-password" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" id="confirm-new-password" placeholder="Confirm new password" required>
+                        </div>
+                    </form>
+                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" form="change-password-form">Change Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!---Edit Student Modal ---->
+    <div class="modal fade" id="editStudentModal" tabindex="-1" aria-labelledby="editStudentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editStudentModalLabel">Edit Student</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-student-form">
+                        <div class="mb-3">
+                            <label for="studentFirstNname" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="studentFirstName" placeholder="Enter first name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="studentLastName" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="studentLastName" placeholder="Enter last name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="studentEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="studentEmail" placeholder="Enter email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="studentPhone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="studentPhone" placeholder="Enter phone number">
+                        </div>
+                        <div class="mb-3">
+                            <label for="studentPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="studentPassword" placeholder="Enter password" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" form="edit-student-form">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!---Assign Quiz Modal-->
     
     <!-- Compose Message Modal -->
     <div class="modal fade" id="composeMessageModal" tabindex="-1" aria-labelledby="composeMessageModalLabel" aria-hidden="true">

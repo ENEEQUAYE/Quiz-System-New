@@ -25,7 +25,7 @@ body {
 /* Sidebar Styles */
 .sidebar {
     width: 220px;
-    background-color: #042954;
+    background-color: #064792;
     color: white;
     flex-shrink: 0;
     height: 100vh;
@@ -79,7 +79,7 @@ body {
 }
 
 .menu-item.active {
-    background-color: #15589f;
+    background-color: #012883;
     border-left: 4px solid #86fb00;
 }
 
@@ -205,6 +205,26 @@ body {
     color: #042954;
 }
 
+/*Table badge*/
+.bardge {
+    display: inline-block;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 12px;
+    text-transform: capitalize;
+}
+
+.bardge.bg-correct {
+    background-color: #b3f6a9;
+    color: #0d7405;
+}
+
+.bardge.bg-wrong {
+    background-color: #f3d877;
+    color: #cf5d00;
+}
+
 /* Button Styles */
 .submit-btn {
     background-color: #4CAF50;
@@ -306,6 +326,59 @@ body {
 }
 
 .stat-value {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* Quick Action Stats Cards Styles */
+.quick-action-stat-card {
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    cursor: pointer;
+}
+
+.quick-action-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 16px;
+    font-size: 20px;
+}
+
+.quick-action-stat-icon.green {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+}
+
+.quick-action-stat-icon.blue {
+    background-color: rgba(33, 150, 243, 0.1);
+    color: #2196f3;
+}
+
+.quick-action-stat-icon.yellow {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.quick-action-stat-icon.cyan {
+    background-color: rgba(0, 188, 212, 0.1);
+    color: #00bcd4;
+}
+
+.quick-action-stat-label {
+    color: #757575;
+    font-size: 14px;
+}
+
+.quick-action-stat-value {
     font-size: 24px;
     font-weight: bold;
 }
@@ -538,7 +611,7 @@ body {
     margin-right: 12px;
 }
 
-.activity-indicator.purple {
+/* .activity-indicator.purple {
     background-color: #9c27b0;
 }
 
@@ -548,11 +621,11 @@ body {
 
 .activity-indicator.green {
     background-color: #4caf50;
-}
+} */
 
 .activity-time {
     font-size: 14px;
-    color: #757575;
+    color: #d40bc7;
 }
 
 .activity-text {
@@ -564,6 +637,76 @@ body {
     color: #f44336;
 }
 
+#toast-container {
+    position: fixed;
+    top: 20px; /* Position the container at the top */
+    right: 40%; /* Position the container at the right */
+    z-index: 1055; /* Ensure it appears above other elements */
+    width: auto; /* Adjust width as needed */
+    max-width: 300px; /* Optional: Limit the maximum width */
+}
+/* Profile Section Styling */
+.profile-info {
+    display: flex;
+    align-items: center;
+    /* background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); */
+}
+
+.profile-image-container {
+    text-align: center;
+    position: relative;
+    margin: 10px;
+}
+
+.profile-image {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border: 3px solid #007bff;
+}
+
+.profile-image-container button {
+    position: absolute;
+    bottom: 0;
+    right: 30px;
+    transform: translate(50%, 50%);
+    border-radius: 50%;
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.profile-details h3 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.profile-details p.text-muted {
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.profile-detail-item {
+    font-size: 16px;
+    color: #333;
+}
+
+.profile-detail-item i {
+    background-color: #007bff;
+    font-size: 18px;
+    padding: 10px;
+    border-radius: 50%;
+    color: #fff;
+}
+
+.profile-actions button {
+    font-size: 14px;
+    padding: 8px 15px;
+    border-radius: 5px;
+}
 /* Footer Styles */
 .footer {
     padding: 12px 24px;
@@ -576,7 +719,6 @@ body {
 footer{
     background-color: #fff;
 }
-/* FullCalendar Toolbar Styling */
 .fc-toolbar {
     background-color: #f8f9fa; /* Light background color */
     border-radius: 8px; /* Rounded corners */
@@ -685,6 +827,29 @@ footer{
     border: 5px solid #FFC527;
 }
 
+/* Make tables scrollable on smaller screens */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling for iOS */
+}
+
+.table-responsive table {
+    width: 100%;
+    min-width: 600px; /* Set a minimum width for the table */
+    border-collapse: collapse;
+}
+
+.table-responsive th, .table-responsive td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    white-space: nowrap; /* Prevent text wrapping */
+}
+#assign{
+    padding: 1px;
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+}
 /* Course Card Styles */
 .course-card {
     background-color: white;
@@ -875,6 +1040,9 @@ footer{
     }
     .sidebar.expanded {
        display: none;
+    }
+    .profile-info{
+        flex-direction: column;
     }
 
    

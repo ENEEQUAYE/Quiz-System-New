@@ -89,10 +89,16 @@ const QuizSchema = new mongoose.Schema({
     min: [1, 'Time limit must be at least 1 minute'],
     max: [180, 'Time limit cannot exceed 180 minutes']
   },
-  maxAttempts: {
+  attempts: {
     type: Number,
     default: 0,
-    min: [0, 'No one has attempted yet'],
+    min: [0, 'No attempts made yet'],
+  },
+  
+  maxAttempts: {
+    type: Number,
+    default: 1,
+    min: [1, 'Max attempts must be at least 1'],
   },
   tags: [{
     type: String,

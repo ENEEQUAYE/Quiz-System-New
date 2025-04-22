@@ -10,7 +10,7 @@
   
     // Check if user is logged in and has admin role
     if (!token || !user || user.role !== "admin") {
-      alert("Session expired. Please log in again.");
+      showToast("Session expired. Please log in again.", "danger");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "index.html";
@@ -375,18 +375,18 @@
 
     //Fetch quizzes count
     fetchData(`${API_URL}/quizzes/count`, (data) => {
-        document.getElementById("quizzes-count").textContent = data.data.total || 0
+        document.getElementById("quizzes-count").textContent = data.total || 0
     })
 
-    //Fetch quiz-submissions count
-    fetchData(`${API_URL}/quizzes/submissions`, (data) => {
-        document.getElementById("submissions-count").textContent = data.data.total || 0
-    })
+    //Fetch and populate recent activities
+ 
+
     
-
     // Initialize calendar
     initializeCalendar()
+    loadRecentActivities()
   }
+
 
   ////////////////////////// Load students data////////////////////////////////
  function loadStudents(page = 1, search = "") {
@@ -415,13 +415,20 @@
                 <td>${student.email}</td>
                 <td>${student.phone || 'N/A'}</td>
                 <td>${formatDate(student.createdAt)}</td>
-                <td>${student.status}</td>
                 <td>
-                    <button class="btn btn-sm btn-primary" data-id="${student._id}" data-action="edit">
-                        <i class="fas fa-edit"></i>
+                    <span class="bardge ${student.status === 'active' ? 'bg-correct' : 'bg-wrong'}">
+                        ${student.status || 'N/A'}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary" data-id="${student._id}" data-bs-toggle="modal" data-bs-target="#editStudentModal">
+                        <i class="fas fa-edit"></i>Edit
                     </button>
                     <button class="btn btn-sm btn-danger ms-2" data-id="${student._id}" data-action="delete">
-                        <i class="fas fa-trash"></i>
+                        <i class="fas fa-trash"></i>Delete
+                    </button>
+                    <button class="btn btn-sm btn-success ms-2" data-id="${student._id}" data-bs-toggle="modal" data-bs-target="#assignQuizModal">
+                        <i class="fas fa-check"id="assign"></i>Assign Quiz
                     </button>
                 </td>
             `;
@@ -464,7 +471,7 @@
           <td>${quiz.questions.length}</td>
           <td>${quiz.order}</td>
           <td>${formatDate(quiz.createdAt)}</td>
-          <td>${quiz.maxAttempts}</td>
+          <td>${quiz.attempts}</td>
           <td>
             <button class="btn btn-sm btn-primary" data-id="${quiz._id}" data-action="edit">
                 <i class="fas fa-edit"></i>
@@ -535,7 +542,7 @@
                 if (e.target.classList.contains("approve-btn")) {
                     handleApprovalAction(e.target.dataset.id, "active");
                 } else if (e.target.classList.contains("reject-btn")) {
-                    handleApprovalAction(e.target.dataset.id, "inactive");
+                    handleApprovalAction(e.target.dataset.id, "rejected");
                 }
             });
         })
@@ -590,106 +597,70 @@
     }
 
     ////////////////////////// Load Profile //////////////////////////
-    function loadProfile() {
+        function loadProfile() {
         fetchData(`${API_URL}/users/me`, (data) => {
-
+      
             // Populate profile data
-            const profilePic = document.getElementById("profile-pic")
-            const profileName = document.getElementById("profile-name")
-            const profileEmail = document.getElementById("profile-email")
-            const profilePhone = document.getElementById("profile-phone")
-            const profilePosition = document.getElementById("profile-position")
-
+            const profilePic = document.getElementById("profile-pic");
+            const profileName = document.getElementById("profile-name");
+            const profileEmail = document.getElementById("profile-email");
+            const profilePhone = document.getElementById("profile-phone");
+            const profilePosition = document.getElementById("profile-position");
+            const profileRole = document.getElementById("profile-role");
+    
             if (profilePic) {
-                profilePic.src = user.profilePicture || "img/user.jpg"
+                profilePic.src = user.profilePicture || "img/user.jpg";
             }
             if (profileName) {
-                profileName.textContent = `${user.firstName} ${user.lastName}`
+                profileName.textContent = `${user.firstName} ${user.lastName}`;
             }
             if (profileEmail) {
-                profileEmail.textContent = user.email
+                profileEmail.textContent = `Email: ${user.email}`;
             }
             if (profilePhone) {
-                profilePhone.textContent = user.phone || "N/A"
+                profilePhone.textContent = `Phone: ${user.phone || "N/A"}`;
             }
             if (profilePosition) {
-                profilePosition.textContent = user.position || "N/A"
+                profilePosition.textContent = `Position: ${user.position}`;
+            }
+            if (profileRole) {
+                profileRole.textContent = user.role || "N/A";
             }
         },
         (error) => {
-            console.error("Error loading profile:", error)
-            showToast("Failed to load profile", "danger")
-        },
-    )
-}
+            console.error("Error loading profile:", error);
+            showToast("Failed to load profile", "danger");
+        });
+    }
+
+    ////////////////////////// Load Messages //////////////////////////
+    function loadMessages() {
+        //// to be implemented
+        console.log("Loading messages...")
+    }
+
+    ////////////////////////// Load Settings //////////////////////////
+    function loadSettings() {
+        //// to be implemented
+        console.log("Loading settings...")
+    }
            
 
 // ========== ACTION LISTENERS ==========
 function handleStudentAction(e) {
-    const studentId = e.currentTarget.getAttribute("data-id");
-        const action = e.currentTarget.getAttribute("data-action");
-        
-        if (action === "edit") {
-            // Implement edit student functionality
-            alert(`Edit student ${studentId}`);
-        } else if (action === "delete") {
-            // Implement delete student functionality
-            if (confirm("Are you sure you want to delete this student?")) {
-                fetch(`${API_URL}/admin/students/${studentId}`, {
-                    method: "DELETE",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                })
-                .then((response) => {
-                    if (response.ok) {
-                        showToast("Student deleted successfully", "success")
-                        loadStudents()
-                    } else {
-                        throw new Error("Failed to delete student")
-                    }
-                })
-                .catch((error) => {
-                    console.error(error)
-                    showToast("Failed to delete student", "danger")
-                })
-            }
-        }
+    e.preventDefault()
 }
 
-function handleQuizAction(e) {}
+function handleQuizAction(e) {
+    e.preventDefault()
+}
 
 function handleApprovalAction(studentId, status) {
-    console.log(`Handling approval for student ID: ${studentId}, status: ${status}`);
-    const action = status === "active" ? "approve" : "reject";
-    const confirmationMessage = status === "active" 
-        ? "Are you sure you want to approve this student?" 
-        : "Are you sure you want to reject this student?";
-    
-    if (confirm(confirmationMessage)) {
-        fetch(`${API_URL}/users/${studentId}/status`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ status }),
-        })
-        .then((response) => response.json())
-        .then((data) => {
-            if (data.success) {
-                showToast(`Student ${action}d successfully`, "success");
-                loadApprovals(); // Refresh the list
-            } else {
-                throw new Error(data.error || "Failed to update student status");
-            }
-        })
-        .catch((error) => {
-            console.error(error);
-            showToast(`Error: ${error.message}`, "danger");
-        });
-    }
+   
+}
+
+function handleAdminAction(e) {
+    e.preventDefault()
 }
 
 
@@ -699,7 +670,7 @@ function handleApprovalAction(studentId, status) {
 
 
   // ========== HELPER FUNCTIONS ==========
-  function fetchData(url, callback) {
+  function fetchData(url, successCallback, errorCallback) {
     fetch(url, {
       method: "GET",
       headers: {
@@ -708,20 +679,90 @@ function handleApprovalAction(studentId, status) {
       },
     })
       .then((response) => {
-        if (response.ok) {
-          return response.json();
-          } else {
-            throw new Error(response.statusText);
+        if (!response.ok) {
+          throw new Error("Network response was not ok")
+        }
+        return response.json()
+      })
+      .then((data) => {
+        if (data.success) {
+          successCallback(data)
+        } else {
+          throw new Error(data.error || "Failed to fetch data")
+        }
+      })
+      .catch((error) => {
+        console.error("Fetch error:", error)
+        if (errorCallback) {
+          errorCallback(error)
+        } else {
+          showToast(`Error: ${error.message}`, "danger")
+        }
+      })
+  }
+
+  function setupPaginationForSection(section, loadFunction) {
+      const prevBtn = document.getElementById(`${section}-prev-page-btn`);
+      const nextBtn = document.getElementById(`${section}-next-page-btn`);
+      const pageNum = document.getElementById(`${section}-page-num`);
+  
+      if (prevBtn && nextBtn && pageNum) {
+          prevBtn.addEventListener("click", () => {
+              const currentPage = parseInt(pageNum.textContent, 10);
+              if (currentPage > 1) {
+                  loadFunction(currentPage - 1);
+              }
+          });
+  
+          nextBtn.addEventListener("click", () => {
+              const currentPage = parseInt(pageNum.textContent, 10);
+              loadFunction(currentPage + 1);
+          });
+      }
+  }
+
+
+  // Update Pagination Controls
+  function updatePagination(pagination) {
+      totalPages = pagination.totalPages;
+      currentPage = pagination.currentPage;
+      
+      document.getElementById('page-num').textContent = currentPage;
+      document.getElementById('prev-page-btn').disabled = currentPage <= 1;
+      document.getElementById('next-page-btn').disabled = currentPage >= totalPages;
+
+      // Update page numbers
+
+  }
+
+    function loadRecentActivities(page = 1) {
+      const container = document.getElementById('activities-list');
+      if (!container) return;
+  
+      // Show loading state
+      container.innerHTML = '<div class="activity-item">Loading...</div>';
+  
+      fetchData(`${API_URL}/admin/activities?page=${page}&limit=5`, (data) => {
+          if (!data.data || data.data.length === 0) {
+              container.innerHTML = '<div class="activity-item">No recent activities</div>';
+              return;
           }
-        })
-        .then((data) => {
-          callback(data);
-        })
-        .catch((error) => {
-          console.error(error);
+  
+          // Populate activities
+          container.innerHTML = data.data.map(activity => `
+              <div class="activity-item">
+                  <div class="activity-indicator ${getActivityColor(activity.type)}"></div>
+                  <div class="activity-details">
+                      <div class="activity-time">${formatTimeAgo(activity.timestamp)}</div>
+                      <div class="activity-text">${activity.message}</div>
+                  </div>
+              </div>
+          `).join('');
+      }, (error) => {
+          console.error("Failed to load recent activities:", error);
+          container.innerHTML = '<div class="activity-item error">Failed to load activities</div>';
       });
-    }
-         
+  }
 
   function initializeCalendar() {
     const calendarEl = document.getElementById("calendar")
@@ -734,28 +775,65 @@ function handleApprovalAction(studentId, status) {
           right: "dayGridMonth,timeGridWeek,timeGridDay",
         },
         height: 300,
-    })
+      })
       calendar.render()
     }
   }
+  function formatTimeAgo(timestamp) {
+    const now = new Date();
+    const date = new Date(timestamp);
+    const seconds = Math.floor((now - date) / 1000);
+
+    const intervals = {
+        year: 31536000,
+        month: 2592000,
+        week: 604800,
+        day: 86400,
+        hour: 3600,
+        minute: 60
+    };
+
+    for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+        const interval = Math.floor(seconds / secondsInUnit);
+        if (interval >= 1) {
+            return `${interval} ${unit}${interval === 1 ? '' : 's'} ago`;
+        }
+    }
+
+    return 'Just now';
+}
+
+function getActivityColor(type) {
+    const colors = {
+        'approval': 'green',
+        'quiz': 'blue',
+        'submission': 'purple',
+        'system': 'cyan',
+        'warning': 'orange',
+        'error': 'red'
+    };
+    return colors[type] || 'purple';
+}
+
 
   function showToast(message, type = "info") {
-    const toastContainer = document.createElement("div");
-    toastContainer.className = `toast show align-items-center text-white bg-${type}`;
-    toastContainer.setAttribute("role", "alert");
-    toastContainer.setAttribute("aria-live", "assertive");
-    toastContainer.setAttribute("aria-atomic", "true");
-    toastContainer.innerHTML = `
+    const toastContainer = document.getElementById("toast-container") || document.body;
+    const toastElement = document.createElement("div");
+    toastElement.className = `toast show align-items-center text-white bg-${type}`;
+    toastElement.setAttribute("role", "alert");
+    toastElement.setAttribute("aria-live", "assertive");
+    toastElement.setAttribute("aria-atomic", "true");
+    toastElement.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">${message}</div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
     
-    document.body.appendChild(toastContainer);
+    toastContainer.appendChild(toastElement);
     setTimeout(() => {
-        toastContainer.classList.remove("show");
-        setTimeout(() => toastContainer.remove(), 300);
+        toastElement.classList.remove("show");
+        setTimeout(() => toastElement.remove(), 300);
     }, 3000);
 }
 

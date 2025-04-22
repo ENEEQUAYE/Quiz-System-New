@@ -14,88 +14,6 @@ router.use(auth);
 router.use(role('admin'));
 
 /**
- * Dashboard Statistics Endpoints
- */
-
-// Get student statistics with trends
-router.get('/stats/students', async (req, res) => {
-  try {
-    const [activeCount, pendingCount, weeklyTrend] = await Promise.all([
-      User.countDocuments({ role: 'student', status: 'active' }),
-      User.countDocuments({ role: 'student', status: 'pending' }),
-      getWeeklyTrend(User, { role: 'student', status: 'active' })
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        active: activeCount,
-        pending: pendingCount,
-        trend: weeklyTrend
-      }
-    });
-  } catch (error) {
-    console.error('Failed to fetch student stats:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch student statistics'
-    });
-  }
-});
-
-// Get quiz statistics
-router.get('/stats/quizzes', async (req, res) => {
-  try {
-    const [activeCount, inactiveCount, popularQuiz] = await Promise.all([
-      Quiz.countDocuments({ isActive: true }),
-      Quiz.countDocuments({ isActive: false }),
-      Quiz.getMostPopular()
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        active: activeCount,
-        inactive: inactiveCount,
-        popular: popularQuiz
-      }
-    });
-  } catch (error) {
-    console.error('Failed to fetch quiz stats:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch quiz statistics'
-    });
-  }
-});
-
-// Get submission statistics
-router.get('/stats/submissions', async (req, res) => {
-  try {
-    const [totalSubmissions, avgScore, recentSubmissions] = await Promise.all([
-      Submission.countDocuments(),
-      Submission.getAverageScore(),
-      Submission.find().sort('-submittedAt').limit(5)
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        total: totalSubmissions,
-        avgScore: avgScore,
-        recent: recentSubmissions
-      }
-    });
-  } catch (error) {
-    console.error('Failed to fetch submission stats:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch submission statistics'
-    });
-  }
-});
-
-/**
  * Approval Management Endpoints
  */
 
@@ -144,7 +62,7 @@ router.get('/approvals', [
 
 // Approve/reject student
 router.patch('/approvals/:id', [
-  check('status').isIn(['active', 'rejected']).withMessage('Invalid status'),
+  check('status').isIn(['active', 'pending', 'rejected']).withMessage('Invalid status'),
   check('id').isMongoId().withMessage('Invalid student ID')
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -374,6 +292,47 @@ router.get('/students/count', async (_req, res) => {
   }
 });
 
+// Update a student
+router.put("/students/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    // Prevent updating password directly
+    if (updates.password) {
+      updates.password = await hashPassword(updates.password);
+    }
+
+    const student = await User.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    if (!student || student.role !== "student") {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    res.status(200).json({ message: "Student updated successfully", student });
+  } catch (error) {
+    console.error("Error updating student:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Delete a student
+router.delete("/students/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const student = await User.findByIdAndDelete(id);
+    if (!student || student.role !== "student") {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    res.status(200).json({ message: "Student deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting student:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 //Get all administartors with pagination and search
 router.get('/administrators', [
@@ -464,20 +423,20 @@ router.get('/activities', [
 });
 
 // Helper function to calculate weekly trend
-async function getWeeklyTrend(model, filter) {
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+// async function getWeeklyTrend(model, filter) {
+//   const oneWeekAgo = new Date();
+//   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-  const [currentCount, previousCount] = await Promise.all([
-    model.countDocuments(filter),
-    model.countDocuments({
-      ...filter,
-      createdAt: { $lt: oneWeekAgo }
-    })
-  ]);
+//   const [currentCount, previousCount] = await Promise.all([
+//     model.countDocuments(filter),
+//     model.countDocuments({
+//       ...filter,
+//       createdAt: { $lt: oneWeekAgo }
+//     })
+//   ]);
 
-  if (previousCount === 0) return 0;
-  return Math.round(((currentCount - previousCount) / previousCount) * 100);
-}
+//   if (previousCount === 0) return 0;
+//   return Math.round(((currentCount - previousCount) / previousCount) * 100);
+// }
 
 module.exports = router;
