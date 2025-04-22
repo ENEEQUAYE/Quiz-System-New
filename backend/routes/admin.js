@@ -374,6 +374,53 @@ router.get('/students/count', async (_req, res) => {
   }
 });
 
+
+//Get all administartors with pagination and search
+router.get('/administrators', [
+  check('page').optional().isInt({ min: 1 }).toInt(),
+  check('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+  check('search').optional().trim().escape()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const page = req.query.page || 1;
+    const limit = req.query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const filter = { role: 'admin' };
+    if (req.query.search) {
+      filter.$or = [
+        { firstName: { $regex: req.query.search, $options: 'i' } },
+        { lastName: { $regex: req.query.search, $options: 'i' } },
+        { email: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
+
+    const [admins, count] = await Promise.all([
+      User.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .exec(),
+      User.countDocuments(filter)
+      ]);
+      res.json({
+        success: true,
+        data: admins,
+        count: count
+      });
+  } catch (error) {
+    console.error('Failed to fetch administrators:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch administrators'
+      });
+      }
+    });
 /**
  * Activity Log Endpoints
  */

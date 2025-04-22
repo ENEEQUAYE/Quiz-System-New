@@ -91,8 +91,8 @@ const QuizSchema = new mongoose.Schema({
   },
   maxAttempts: {
     type: Number,
-    default: 1,
-    min: [1, 'Max attempts must be at least 1']
+    default: 0,
+    min: [0, 'No one has attempted yet'],
   },
   tags: [{
     type: String,

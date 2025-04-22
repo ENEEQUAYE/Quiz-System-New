@@ -77,6 +77,15 @@
         })
       }
 
+      function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        });
+    }
+
     // ========== SIDEBAR MANAGEMENT ==========
     function setupSidebar() {
         if (sidebarCollapse && sidebar) {
@@ -405,7 +414,7 @@
                 <td>${student.firstName} ${student.lastName}</td>
                 <td>${student.email}</td>
                 <td>${student.phone || 'N/A'}</td>
-                <td>${new Date(student.createdAt).toLocaleDateString()}</td>
+                <td>${formatDate(student.createdAt)}</td>
                 <td>${student.status}</td>
                 <td>
                     <button class="btn btn-sm btn-primary" data-id="${student._id}" data-action="edit">
@@ -438,7 +447,7 @@
     quizzesTableBody.innerHTML = '<tr><td colspan="8" class="text-center">Loading...</td></tr>'
 
     //Fetch quizzes from API
-    fetchData(`${API_URL}/admin/quizzes?page=${page}&search=${search}`, (data) => {
+    fetchData(`${API_URL}/quizzes/?page=${page}&search=${search}`, (data) => {
       // Clear loading state
       quizzesTableBody.innerHTML = ""
 
@@ -451,11 +460,11 @@
       data.data.forEach((quiz) => {
         const row = document.createElement("tr")
         row.innerHTML = `
-          <td>${quiz.title}</td>
-          <td>${quiz.description || 'N/A'}</td>
+          <td>${quiz.title}<br><span class="welcome-subtext">${quiz.description}</span></td>
           <td>${quiz.questions.length}</td>
-          <td>${new Date(quiz.createdAt).toLocaleDateString()}</td>
-          <td>${quiz.isActive ? 'Active' : 'Inactive'}</td>
+          <td>${quiz.order}</td>
+          <td>${formatDate(quiz.createdAt)}</td>
+          <td>${quiz.maxAttempts}</td>
           <td>
             <button class="btn btn-sm btn-primary" data-id="${quiz._id}" data-action="edit">
                 <i class="fas fa-edit"></i>
@@ -504,7 +513,7 @@
                     <td>${student.firstName} ${student.lastName}</td>
                     <td>${student.email}</td>
                     <td>${student.phone || 'N/A'}</td>
-                    <td>${new Date(student.createdAt).toLocaleDateString()}</td>
+                    <td>${formatDate(student.createdAt)}</td>
                     <td>${student.status}</td>
                     <td>
                         <button class="btn btn-sm btn-success approve-btn" data-id="${student._id}" data-action="approve">
