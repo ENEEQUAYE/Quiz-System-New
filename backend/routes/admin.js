@@ -161,10 +161,11 @@ router.post('/quizzes', [
   }
 });
 
-// Assign quiz to student
+// Assign multiple quizzes to a student
 router.post('/students/:id/quizzes', [
   check('id').isMongoId().withMessage('Invalid student ID'),
-  check('quizId').isMongoId().withMessage('Invalid quiz ID')
+  check('quizzes').isArray({ min: 1 }).withMessage('Quizzes must be an array with at least one quiz ID'),
+  check('quizzes.*').isMongoId().withMessage('Invalid quiz ID in the quizzes array')
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -172,11 +173,7 @@ router.post('/students/:id/quizzes', [
   }
 
   try {
-    const [student, quiz] = await Promise.all([
-      User.findOne({ _id: req.params.id, role: 'student' }),
-      Quiz.findById(req.body.quizId)
-    ]);
-
+    const student = await User.findOne({ _id: req.params.id, role: 'student' });
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -184,36 +181,39 @@ router.post('/students/:id/quizzes', [
       });
     }
 
-    if (!quiz) {
+    const quizzes = await Quiz.find({ _id: { $in: req.body.quizzes } });
+    if (quizzes.length !== req.body.quizzes.length) {
       return res.status(404).json({
         success: false,
-        error: 'Quiz not found'
+        error: 'One or more quizzes not found'
       });
     }
 
-    if (!student.quizzesAllowed.includes(quiz._id)) {
-      student.quizzesAllowed.push(quiz._id);
-      await student.save();
+    // Add quizzes to the student's allowed quizzes
+    const newQuizzes = quizzes.filter(quiz => !student.quizzesAllowed.includes(quiz._id));
+    student.quizzesAllowed.push(...newQuizzes.map(quiz => quiz._id));
+    await student.save();
 
-      // Log assignment
-      await ActivityLog.create({
-        action: 'quiz_assigned',
-        description: `${req.user.firstName} ${req.user.lastName} assigned quiz "${quiz.title}" to ${student.firstName} ${student.lastName}`,
-        performedBy: req.user._id,
-        targetUser: student._id,
-        targetQuiz: quiz._id
-      });
-    }
+    // Log the assignment for each quiz
+    const activityLogs = newQuizzes.map(quiz => ({
+      action: 'quiz_assigned',
+      description: `${req.user.firstName} ${req.user.lastName} assigned quiz "${quiz.title}" to ${student.firstName} ${student.lastName}`,
+      performedBy: req.user._id,
+      targetUser: student._id,
+      targetQuiz: quiz._id
+    }));
+    await ActivityLog.insertMany(activityLogs);
 
     res.json({
       success: true,
+      message: 'Quizzes assigned successfully',
       data: student
     });
   } catch (error) {
-    console.error('Failed to assign quiz:', error);
+    console.error('Failed to assign quizzes:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to assign quiz'
+      error: 'Failed to assign quizzes'
     });
   }
 });
@@ -289,6 +289,22 @@ router.get('/students/count', async (_req, res) => {
       success: false,
       error: 'Failed to fetch student count'
     });
+  }
+});
+
+
+// Get a single student by ID
+router.get('/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const student = await User.findById(id).select('firstName lastName email phone status quizzesAllowed createdAt');
+    if (!student || student.role !== 'student') {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+    res.status(200).json({ message: 'Student fetched successfully', student });
+  } catch (error) {
+    console.error('Error fetching student:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

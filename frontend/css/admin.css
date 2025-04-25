@@ -225,6 +225,23 @@ body {
     color: #cf5d00;
 }
 
+.bardge.bg-pending {
+    background-color: #f3a9a9;
+    color: #740505;
+}
+.bardge.bg-ongoing {
+    background-color: #a9d3f6;
+    color: #0d5dcf;
+}
+.bardge.bg-completed {
+    background-color: #a9f6d3;
+    color: #0d7405;
+}
+.bardge.bg-registered {
+    background-color: #f3d877;
+    color: #cf5d00;
+}
+
 /* Button Styles */
 .submit-btn {
     background-color: #4CAF50;

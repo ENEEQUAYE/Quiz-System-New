@@ -4,13 +4,11 @@
     // ========== AUTHENTICATION & INITIALIZATION ==========
     const token = localStorage.getItem("token")
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-    console.log("Token:", token);
-    console.log("User:", user);
     const API_URL = "http://localhost:5000/api"
   
     // Check if user is logged in and has admin role
     if (!token || !user || user.role !== "admin") {
-      showToast("Session expired. Please log in again.", "danger");
+      alert("Session expired. Please log in again.");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "index.html";
@@ -227,6 +225,13 @@
   }
 
   function setupFormHandlers() {
+
+    // edit student form
+    const editStudentForm = document.getElementById("edit-student-form")
+    if (editStudentForm) {
+      editStudentForm.addEventListener("submit", handleEditStudentFormSubmit)
+    }
+    
     //create quiz form
     const createQuizForm = document.getElementById("create-quiz-form")
     if (createQuizForm) {
@@ -421,13 +426,13 @@
                     </span>
                 </td>
                 <td>
-                    <button class="btn btn-sm btn-primary" data-id="${student._id}" data-bs-toggle="modal" data-bs-target="#editStudentModal">
+                    <button class="btn btn-sm btn-primary" data-id="${student._id}" data-action="edit" data-bs-toggle="modal" data-bs-target="#editStudentModal">
                         <i class="fas fa-edit"></i>Edit
                     </button>
                     <button class="btn btn-sm btn-danger ms-2" data-id="${student._id}" data-action="delete">
                         <i class="fas fa-trash"></i>Delete
                     </button>
-                    <button class="btn btn-sm btn-success ms-2" data-id="${student._id}" data-bs-toggle="modal" data-bs-target="#assignQuizModal">
+                    <button class="btn btn-sm btn-success ms-2" data-id="${student._id}"  data-action="assign-quiz" data-bs-toggle="modal" data-bs-target="#assignQuizModal">
                         <i class="fas fa-check"id="assign"></i>Assign Quiz
                     </button>
                 </td>
@@ -521,7 +526,7 @@
                     <td>${student.email}</td>
                     <td>${student.phone || 'N/A'}</td>
                     <td>${formatDate(student.createdAt)}</td>
-                    <td>${student.status}</td>
+                    <td><span class="bardge bg-wrong">${student.status}</span></td>
                     <td>
                         <button class="btn btn-sm btn-success approve-btn" data-id="${student._id}" data-action="approve">
                             Approve
@@ -648,19 +653,215 @@
 
 // ========== ACTION LISTENERS ==========
 function handleStudentAction(e) {
-    e.preventDefault()
-}
+    e.preventDefault();
+
+    const action = e.target.dataset.action;
+    const studentId = e.target.dataset.id;
+    if (!studentId) return;
+
+    if (action === "delete") {
+        if (confirm("Are you sure you want to delete this student?")) {
+            fetch(`${API_URL}/admin/students/${studentId}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+                .then((response) => {
+                    if (response.ok) {
+                        showToast("Student deleted successfully", "success");
+                        loadStudents(); // Refresh the student list
+                    } else {
+                        throw new Error("Failed to delete student");
+                    }
+                })
+                .catch((error) => {
+                    console.error(error);
+                    showToast("Failed to delete student", "danger");
+                });
+        }
+    } else if (action === "edit") {
+        // Populate the modal with student data
+        fetch(`${API_URL}/admin/students/${studentId}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                document.getElementById("studentFirstName").value = data.firstName;
+                document.getElementById("studentLastName").value = data.lastName;
+                document.getElementById("studentEmail").value = data.email;
+                document.getElementById("studentPhone").value = data.phone || "";
+            })
+             // Close modal
+        const modalElement = document.getElementById("edittudentModal")
+        const modal = bootstrap.Modal.getInstance(modalElement)
+        if (modal) modal.hide()
+            .catch((error) => {
+                console.error(error);
+                showToast("Failed to load student data", "danger");
+       });
+    }
+    else if (action === "assign-quiz") {
+        // Open the assign quiz modal and populate it with student data
+        // const modal = new bootstrap.Modal(document.getElementById("assignQuizModal"));
+        // modal.show();
+
+        //Fetch all quizzes
+         // Fetch all quizzes and populate the modal
+         const quizListContainer = document.getElementById("quiz-list");
+         const selectAllCheckbox = document.getElementById("select-all-quizzes");
+ 
+         // Clear previous content
+         quizListContainer.innerHTML = '<p class="text-muted">Loading quizzes...</p>';
+ 
+         fetch(`${API_URL}/quizzes`, {
+             headers: {
+                 Authorization: `Bearer ${token}`,
+             },
+         })
+             .then((response) => response.json())
+             .then((data) => {
+                 if (data.success && data.data.length > 0) {
+                     quizListContainer.innerHTML = data.data
+                         .map(
+                             (quiz) => `
+                             <div class="form-check">
+                                 <input class="form-check-input quiz-checkbox" type="checkbox" id="quiz-${quiz._id}" value="${quiz._id}">
+                                 <label class="form-check-label" for="quiz-${quiz._id}">
+                                     ${quiz.title}
+                                 </label>
+                             </div>
+                         `
+                         )
+                         .join("");
+                 } else {
+                     quizListContainer.innerHTML = '<p class="text-muted">No quizzes available</p>';
+                 }
+             })
+             .catch((error) => {
+                 console.error("Failed to load quizzes:", error);
+                 showToast("Failed to load quizzes", "danger");
+             });
+
+              // Handle "Select All" functionality
+        selectAllCheckbox.addEventListener("change", (e) => {
+          const checkboxes = document.querySelectorAll(".quiz-checkbox");
+          checkboxes.forEach((checkbox) => {
+              checkbox.checked = e.target.checked;
+          });
+      });
+
+      // Handle form submission
+      document.getElementById("assign-quiz-form").addEventListener("submit", (e) => {
+          e.preventDefault();
+
+          const selectedQuizzes = Array.from(document.querySelectorAll(".quiz-checkbox:checked")).map(
+              (checkbox) => checkbox.value
+          );
+
+          if (selectedQuizzes.length === 0) {
+              showToast("Please select at least one quiz", "warning");
+              return;
+          }
+
+          // Assign selected quizzes to the student
+          fetch(`${API_URL}/admin/students/${studentId}/quizzes`, {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ quizzes: selectedQuizzes }),
+          })
+              .then((response) => response.json())
+              .then((data) => {
+                  if (data.success) {
+                      showToast("Quizzes assigned successfully", "success");
+                      modal.hide(); // Close the modal
+                     // Refresh window
+                      window.location.reload();
+                  } else {
+                      throw new Error(data.error || "Failed to assign quizzes");
+                  }
+              })
+              .catch((error) => {
+                  console.error(error);
+                  showToast("Failed to assign quizzes", "danger");
+              });
+            });
+    }
+  }
 
 function handleQuizAction(e) {
     e.preventDefault()
 }
 
 function handleApprovalAction(studentId, status) {
-   
+    const confirmationMessage =
+        status === "active"
+            ? "Are you sure you want to approve this student?"
+            : "Are you sure you want to reject this student?";
+
+            // Show a toast message for the action
+            showToast(confirmationMessage, "info");
+
+    if (confirm(confirmationMessage)) {
+        fetch(`${API_URL}/admin/approvals/${studentId}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status }),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success) {
+                    showToast(`Student ${status === "active" ? "approved" : "rejected"} successfully`, "success");
+                    loadApprovals(); // Refresh the approvals list
+                } else {
+                    throw new Error(data.error || "Failed to update student status");
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+                showToast("Failed to update student status", "danger");
+            });
+    }
 }
 
 function handleAdminAction(e) {
-    e.preventDefault()
+    e.preventDefault();
+
+    const action = e.target.dataset.action;
+    const adminId = e.target.dataset.id;
+
+    if (action === "delete") {
+        if (confirm("Are you sure you want to delete this administrator?")) {
+            fetch(`${API_URL}/admin/administrators/${adminId}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+                .then((response) => {
+                    if (response.ok) {
+                        showToast("Administrator deleted successfully", "success");
+                        loadAdministrators(); // Refresh the administrators list
+                    } else {
+                        throw new Error("Failed to delete administrator");
+                    }
+                })
+                .catch((error) => {
+                    console.error(error);
+                    showToast("Failed to delete administrator", "danger");
+                });
+        }
+    }
 }
 
 

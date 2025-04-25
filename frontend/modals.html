@@ -175,6 +175,38 @@
     </div>
 
     <!---Assign Quiz Modal-->
+       <div class="modal fade" id="assignQuizModal" tabindex="-1" aria-labelledby="assignQuizModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignQuizModalLabel">Assign Quiz</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="assign-quiz-form">
+                        <div class="mb-3">
+                            <label class="form-label">Select Quizzes</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="select-all-quizzes">
+                                <label class="form-check-label" for="select-all-quizzes">
+                                    Select All
+                                </label>
+                            </div>
+                            <div id="quiz-list" class="mt-2">
+                                <!-- Quizzes will be dynamically loaded here -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" form="assign-quiz-form">Assign Selected Quizzes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+                       
     
     <!-- Compose Message Modal -->
     <div class="modal fade" id="composeMessageModal" tabindex="-1" aria-labelledby="composeMessageModalLabel" aria-hidden="true">
@@ -203,6 +235,50 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="submit" class="btn btn-primary" form="compose-message-form">Send Message</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--------Create Admin Modal-------->
+    <div class="modal fade" id="createAdminModal" tabindex="-1" aria-labelledby="createAdminModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createAdminModalLabel">Create Administrator</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="create-admin-form">
+                        <div class="mb-3">
+                            <label for="adminFirstName" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="adminFirstName" placeholder="Enter first name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="adminLastName" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="adminLastName" placeholder="Enter last name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="adminEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="adminEmail" placeholder="Enter email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="adminPhone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="adminPhone" placeholder="Enter phone number">
+                        </div>
+                        <div class="mb-3">
+                            <label for="adminPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="adminPassword" placeholder="Enter password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="adminPosition" class="form-label">Position</label>
+                            <input type="text" class="form-control" id="adminPosition" placeholder="Enter position">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" form="create-admin-form">Create Administrator</button>
                 </div>
             </div>
         </div>
