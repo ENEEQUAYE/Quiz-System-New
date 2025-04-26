@@ -39,13 +39,17 @@
                     <i class="fas fa-user-graduate"></i>
                     <span>Students</span>
                 </div>
+                <div class="menu-item" data-target="#approvals">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Pending Approvals</span>
+                </div>
                 <div class="menu-item" data-target="#quizzes">
                     <i class="fas fa-question-circle"></i>
                     <span>Tests & Quizzes</span>
                 </div>
-                <div class="menu-item" data-target="#approvals">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Pending Approvals</span>
+                <div class="menu-item" data-target="#create-quiz">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Create Quiz</span>
                 </div>
                 <div class="menu-item" data-target="#administrators">
                     <i class="fas fa-user-tie"></i>
@@ -71,8 +75,6 @@
             </div>
         </div>
 
-      
-
         <!-- Main Content -->
         <div class="main-content flex-grow-1">
             <!-- Header -->
@@ -96,6 +98,35 @@
                     <div class="user-info d-flex align-items-center">
                         <img src="img/user.jpg" alt="User" class="img-fluid rounded-circle user-image">
                         <span class="user-name ms-2 d-none d-md-block">Admin</span>
+                    </div>
+                </div>
+
+
+                <!-- User Dropdown Menu (hidden by default) -->
+                <div class="user-dropdown-menu">
+                    <div class="dropdown-item" data-action="profile">
+                        <i class="fas fa-user"></i> My Profile
+                    </div>
+                    <div class="dropdown-item" data-action="settings">
+                        <i class="fas fa-cog"></i> Settings
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-item" data-action="logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </div>
+                </div>
+
+                <!-- Notifications Dropdown (hidden by default) -->
+                <div class="notifications-dropdown">
+                    <div class="dropdown-header">
+                        <span>Notifications</span>
+                        <button class="mark-all-read">Mark all as read</button>
+                    </div>
+                    <div class="notifications-list">
+                        <!-- Notifications will be loaded here -->
+                    </div>
+                    <div class="dropdown-footer">
+                        <a href="#">View all notifications</a>
                     </div>
                 </div>
             </header>
@@ -322,14 +353,7 @@
                         <span class="breadcrumb-item active">Quizzes</span>
                     </div>
                     <div>
-                        <button class="submit-btn"><a href="quiz.html">Create Quiz</a></button>
-                        <style>
-                            .dashboard-content a{
-                                text-decoration: none;
-                                color: white;
-                            }
-                        </style>
-                        <!-- <button class="btn" id="add-quiz-btn" data-bs-toggle="modal" data-bs-target="#createQuizModal">Create Quiz</button> -->
+                        <button class="submit-btn" data-bs-toggle="menu-item" data-bs-target="#create-quiz">Create Quiz</button>
                     </div>
                 </div>
 
@@ -363,6 +387,115 @@
                 </div>
             </div>
 
+            <!---------------------------------------------------------Create Quiz Content-------------------------------------------------------------------->
+            <div class="dashboard-content" id="create-quiz" style="display: none;">
+                <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                    <div class="breadcrumb">
+                        <span class="breadcrumb-item">Home</span>
+                        <span class="breadcrumb-separator">›</span>
+                        <span class="breadcrumb-item active">Create Quiz</span>
+                    </div>
+                    <div>
+                        <button type="submit" class="submit-btn" id="create-quiz-btn"><i class="fas fa-save"></i> Save Quiz</button>   
+                    </div>
+                </div>
+
+                <!-- Quiz settings card (Quiz title, description, order, duration, active status checked) -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title">Quiz Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="quiz-title" class="form-label">Quiz Title</label>
+                            <input type="text" id="create-quiz-title" class="form-control" placeholder="Enter quiz title">
+                        </div>
+                        <div class="mb-3">
+                            <label for="quiz-description" class="form-label">Description</label>
+                            <textarea id="create-quiz-description" class="form-control" rows="3" placeholder="Enter quiz description"></textarea>
+                        </div>
+                        <div class="row g-3 justify-content-between">
+                            <div class="col-md-3">
+                                <label for="quiz-order" class="form-label">Order</label>
+                                <input type="number" min="1" id="create-quiz-order" class="form-control" placeholder="Enter quiz order">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="quiz-duration" class="form-label">Duration (minutes)</label>
+                                <input type="number" min="1" id="create-quiz-duration" class="form-control" placeholder="Enter quiz duration">
+                            </div>
+                            <div class="form-check form-switch col-3 ms-4">
+                                <input type="checkbox" id="create-quiz-active" class="form-check-input" checked>
+                                <label for="quiz-active" class="form-check-label">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+               
+
+                <!-- Questions card (Add questions, question type, options, correct answer) -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title">Questions</h5>
+                    </div>
+
+                     <!-- Questions Container (Sortable) -->
+                    <div class="card-body" id="questions-container">
+                         <!-- Empty state -->
+                        <div id="no-questions" class="text-center py-5 text-muted">
+                            <i class="fas fa-question-circle fa-3x mb-3"></i>
+                            <p class="mb-0">No questions added yet</p>
+                        </div>
+                
+                    <!-- Question template (hidden) -->
+                    <!-- <div class="card question-item mb-3 d-none" id="question-item-template">
+                        <div class="card-header">
+                            <h5 class="card-title">Question <span class="question-number">1</span></h5>
+                            <div class="card-actions">
+                                <button type="button" class="action-btn red" id="remove-question-btn" aria-label="Close"><i class="fas fa-minus-circle"></i></button>
+                                <button type="button" class="action-btn green" id="move-question" aria-label="Move this question"><i class="fas fa-arrows-alt"></i></button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <label for="question-text" class="form-label">Question Text</label>
+                                    <textarea class="form-control" id="question-text" rows="3" placeholder="Enter question text"></textarea>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="question-type" class="form-label">Question Type</label>
+                                    <select class="form-select" id="question-type">
+                                        <option value="multiple-choice">Multiple Choice</option>
+                                        <option value="true-false">True/False</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <label for="question-options" class="form-label mt-3">Options</label>
+                            <div class="options-container mt-3" id="options-container">
+                                <-- Option template --
+                                <div class="input-group mb-2" id="option-template">
+                                    <div class="input-group-text">
+                                        <input class="form-check-radio correct-option" type="radio" name="correctOption" title="Select this option as correct">
+                                    </div>
+                                    <input type="text" class="form-control" placeholder="Option 1" aria-label="Option 1">
+                                    <button class="btn remove-option-btn" type="button"><i class="fas fa-minus-circle"></i></button>
+                                </div>
+                                <div class="input-group mb-2" id="option-template">
+                                    <div class="input-group-text">
+                                        <input class="form-check-radio correct-option" type="radio" name="correctOption" title="Select this option as correct">
+                                    </div>
+                                    <input type="text" class="form-control" placeholder="Option 2" aria-label="Option 2">
+                                    <button class="btn remove-option-btn" type="button"><i class="fas fa-minus-circle"></i></button>
+                                </div>
+                            </div>
+                            <button type="button" class="add-btn add-option-btn"><i class="fas fa-plus-circle"></i> Add Option</button>
+                        </div>
+                    </div> -->
+                </div>
+                <div class="card-footer">
+                    <button type="button" class="add-btn btn-primary" id="add-question-btn"><i class="fas fa-plus-circle"></i> Add Question</button>
+                </div>
+            </div>
+            </div>
             <!---------------------------------------------------------Approvals Content-------------------------------------------------------------------->
             <div class="dashboard-content" id="approvals" style="display: none;">
                 <div class="page-header d-flex justify-content-between align-items-center mb-4">
@@ -491,7 +624,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
           
             <!-------------------------------------------------------------------Messages Content------------------------------------------------------------------>
             <div class="dashboard-content" id="messages" style="display: none;">

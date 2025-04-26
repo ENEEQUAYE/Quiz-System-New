@@ -139,48 +139,46 @@ router.put('/:id/status', auth, async (req, res) => {
 // @access  Private (Admin only)
 router.post("/admin", auth, async (req, res) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, phone, position } = req.body;
 
-    // Check if user already exists
-    const userExists = await User.findOne({ email });
-
-    if (userExists) {
+    let user = await User.findOne({ email });
+    if (user) {
       return res.status(400).json({
         success: false,
-        message: "Email already registered",
+        error: 'User already exists'
       });
     }
 
-    // Create admin user
-    const user = await User.create({
+    user = new User({
       firstName,
       lastName,
       email,
       password,
-      role: "admin",
-      status: "active", // Admins are active by default
+      phone: phone || undefined,
+      position: position || undefined,
+      role: 'admin',
+      status: 'active'
     });
+
+    await user.save();
 
     res.status(201).json({
       success: true,
-      message: "Admin user created successfully",
+      message: 'Admin created successfully',
       user: {
         id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role,
-        status: user.status,
-        profilePicture: user.profilePicture,
         phone: user.phone,
-        position: user.position,
-      },
+        position: user.position
+      }
     });
   } catch (error) {
+    console.error('Error creating admin:', error);
     res.status(500).json({
       success: false,
-      message: "Could not create admin user",
-      error: error.message,
+      error: 'Server error'
     });
   }
 });
@@ -290,4 +288,4 @@ router.get('/me', auth, async (req, res) => {
     }
 });
 
-module.exports = router;
+module.exports = router;  

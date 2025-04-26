@@ -33,6 +33,8 @@
       setupMenuNavigation()
       setupEventListeners()
       initializeCalendar()
+      loadNotificationCounts();
+      setInterval(loadNotificationCounts, 300000); // Refresh every 5 minutes
     }
   
     function setProfile() {
@@ -81,6 +83,26 @@
             day: "2-digit",
             month: "2-digit",
             year: "numeric"
+        });
+    }
+
+     // Load Notification Counts
+     function loadNotificationCounts() {
+        fetch(`${API_URL}/notifications/counts`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to fetch notifications');
+            return response.json();
+        })
+        .then(data => {
+            document.querySelector('.fa-envelope + .badge').textContent = data.messages;
+            document.querySelector('.fa-bell + .badge').textContent = data.alerts;
+        })
+        .catch(error => {
+            console.error('Error loading notifications:', error);
         });
     }
 
@@ -208,6 +230,44 @@
       })
     }
 
+    const createQuizBtn = document.getElementById("create-quiz-btn");
+    if (createQuizBtn) {
+        createQuizBtn.addEventListener("click", handleCreateQuiz);
+    }
+
+    // Add Question button
+    const addQuestionBtn = document.getElementById("add-question-btn");
+    if (addQuestionBtn) {
+        addQuestionBtn.addEventListener("click", addQuestion);
+    }
+
+    // Notification icons
+    // const notificationIcons = document.querySelectorAll(".notification-icon");
+    // notificationIcons.forEach((icon) => {
+    //     icon.addEventListener("click", () => {
+    //         const dropdown = icon.querySelector(".dropdown-menu");
+    //         if (dropdown) {
+    //             dropdown.classList.toggle("show");
+    //         }
+    //     });
+    // });
+
+    // Close dropdowns when clicking outside
+    // document.addEventListener("click", (event) => {
+    //     if (!event.target.closest(".notification-icon")) {
+    //         notificationIcons.forEach((icon) => {
+    //             const dropdown = icon.querySelector(".dropdown-menu");
+    //             if (dropdown) {
+    //                 dropdown.classList.remove("show");
+    //             }
+    //         });
+    //     }
+    // });
+    
+    // User dropdown (would be implemented with a dropdown menu)
+    // document.querySelector('.user-info').addEventListener('click', showUserMenu);
+
+
      // Form submission handlers
      setupFormHandlers()
 
@@ -226,28 +286,10 @@
 
   function setupFormHandlers() {
 
-    // edit student form
-    const editStudentForm = document.getElementById("edit-student-form")
-    if (editStudentForm) {
-      editStudentForm.addEventListener("submit", handleEditStudentFormSubmit)
-    }
-    
-    //create quiz form
-    const createQuizForm = document.getElementById("create-quiz-form")
-    if (createQuizForm) {
-      createQuizForm.addEventListener("submit", handleQuizFormSubmit)
-    }
-
-    //edit profile form
-    const editProfileForm = document.getElementById("edit-profile-form")
-    if (editProfileForm) {
-      editProfileForm.addEventListener("submit", handleEditProfileFormSubmit)
-    }
-
-    //compose message form
-    const composeMessageForm = document.getElementById("compose-message-form")
-    if (composeMessageForm) {
-      composeMessageForm.addEventListener("submit", handleComposeMessageFormSubmit)
+    //create administrator form
+    const createAdminForm = document.getElementById("create-admin-form")
+    if (createAdminForm) {
+      createAdminForm.addEventListener("submit", handleCreateAdminFormSubmit)
     }
   }
 
@@ -317,20 +359,32 @@
     setupPaginationForSection("messages", loadMessages)
   }
 
-  // ========== FORM HANDLERS ==========
-
-  function handleQuizFormSubmit(event) {
-    event.preventDefault()
+  function handleCreateAdminFormSubmit(e) {
+    e.preventDefault();
+    console.log("Form submission handler called"); // Debugging
 
     const formData = {
-        title: document.getElementById("quiz-title").value,
-        description: document.getElementById("quiz-description").value,
-        questions: JSON.parse(document.getElementById("quiz-questions").value),
-        order: parseInt(document.getElementById("quiz-order").value, 10),
-        createdBy: user._id,
+        firstName: document.getElementById("adminFirstName").value.trim(),
+        lastName: document.getElementById("adminLastName").value.trim(),
+        email: document.getElementById("adminEmail").value.trim(),
+        password: document.getElementById("adminPassword").value,
+        phone: document.getElementById("adminPhone").value.trim() || undefined,
+        position: document.getElementById("adminPosition").value.trim() || undefined
+    };
+
+    console.log("Form submitted:", formData); // Debugging
+
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+        showToast("Please fill in all required fields", "warning");
+        return;
     }
 
-    fetch(`${API_URL}/quizzes`, {
+    if (formData.password.length < 6) {
+        showToast("Password must be at least 6 characters", "warning");
+        return;
+    }
+
+    fetch(`${API_URL}/users/admin`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -338,35 +392,201 @@
         },
         body: JSON.stringify(formData),
     })
-    .then((response) => {
-        if (response.ok) {
-            return response.json()
-        } else {
-            throw new Error("Failed to create quiz")
-        }
-    })
-    .then((data) => {
-        //close modal
-        const modalElement = document.getElementById("create-quiz-modal")
-        const modal = bootstrap.Modal.getInstance(modalElement)
-        if (modal) {
-            modal.hide()
-        }
-        //reset form
-        document.getElementById("create-quiz-form").reset()
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById("createAdminModal"));
+                modal.hide();
+                showToast("Administrator created successfully", "success");
+                loadAdministrators();
+                document.getElementById("create-admin-form").reset();
+            } else {
+                throw new Error(data.error || "Failed to create administrator");
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            showToast(error.message || "Failed to create administrator", "danger");
+        });
+}
 
-        //show success message
-        showToast("Quiz created successfully", "success")
-        loadQuizzes()
+function handleCreateQuiz() {
+    const title = document.getElementById("create-quiz-title").value.trim();
+    const description = document.getElementById("create-quiz-description").value.trim();
+    const order = parseInt(document.getElementById("create-quiz-order").value, 10);
+    const duration = parseInt(document.getElementById("create-quiz-duration").value, 10);
+    const isActive = document.getElementById("create-quiz-active").checked;
+
+    // Get all visible question items
+    const questionItems = Array.from(document.querySelectorAll(".question-item")).filter(
+        (item) => item.offsetParent !== null // Exclude hidden elements
+    );
+
+    // Check if there are any questions
+    if (questionItems.length === 0) {
+        showToast("Please add at least one question before saving the quiz", "warning");
+        return;
+    }
+
+    // Map over question items to extract question data
+    const questions = questionItems.map((questionItem, index) => {
+        const questionText = questionItem.querySelector(".question-text")?.value.trim();
+        const questionType = questionItem.querySelector(".question-type")?.value;
+        const options = Array.from(questionItem.querySelectorAll(".option-input")).map((optionInput) => optionInput.value.trim());
+        const correctAnswer = Array.from(questionItem.querySelectorAll(".correct-option")).findIndex((radio) => radio.checked);
+
+        // Debugging: Log question data
+        console.log(`Question ${index + 1}:`, { questionText, questionType, options, correctAnswer });
+
+        // Validate question data
+        if (!questionText) {
+            throw new Error(`Question ${index + 1} must have text.`);
+        }
+        if (options.length === 0) {
+            throw new Error(`Question ${index + 1} must have at least one option.`);
+        }
+        if (correctAnswer === -1) {
+            throw new Error(`Question ${index + 1} must have a correct answer selected.`);
+        }
+
+        return {
+            questionText,
+            questionType,
+            options,
+            correctAnswer,
+        };
+    });
+
+    // Validate quiz data
+    if (!title || !order || !duration) {
+        showToast("Please fill in all required fields", "warning");
+        return;
+    }
+
+    const quizData = {
+        title,
+        description,
+        order,
+        duration,
+        isActive,
+        questions,
+        totalQuestions: questions.length,
+    };
+
+    // Send the quiz data to the backend
+    fetch(`${API_URL}/admin/quizzes`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(quizData),
     })
-    .catch((error) => {
-        console.error(error)
-        showToast("Failed to create quiz", "danger")
-    })
-  }
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.success) {
+                showToast("Quiz created successfully", "success");
+                // Reset the form
+                document.getElementById("create-quiz-title").value = "";
+                document.getElementById("create-quiz-description").value = "";
+                document.getElementById("create-quiz-order").value = "";
+                document.getElementById("create-quiz-duration").value = "";
+                document.getElementById("create-quiz-active").checked = true;
+                document.getElementById("questions-container").innerHTML = `
+                    <div id="no-questions" class="text-center py-5 text-muted">
+                        <i class="fas fa-question-circle fa-3x mb-3"></i>
+                        <p class="mb-0">No questions added yet</p>
+                    </div>
+                `;
+            } else {
+                throw new Error(data.error || "Failed to create quiz");
+            }
+        })
+        .catch((error) => {
+            console.error(error);
+            showToast(error.message || "Failed to create quiz", "danger");
+        });
+}
+
+function addQuestion() {
+    const questionsContainer = document.getElementById("questions-container");
+    const noQuestions = document.getElementById("no-questions");
+
+    if (noQuestions) {
+        noQuestions.remove();
+    }
+
+    // Generate a unique ID for the question
+    const uniqueId = Date.now();
+
+    const questionItem = document.createElement("div");
+    questionItem.className = "card question-item mb-3";
+    questionItem.innerHTML = `
+        <div class="card-header">
+            <h5 class="card-title">Question</h5>
+            <div class="card-actions">
+                <button type="button" class="action-btn red remove-question-btn"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Question Type</label>
+                <select class="form-select question-type">
+                    <option value="multiple-choice">Multiple Choice</option>
+                    <option value="true-false">True/False</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Question Text</label>
+                <textarea class="form-control question-text" rows="3" placeholder="Enter question text"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Options</label>
+                <div class="options-container">
+                    <div class="input-group mb-2">
+                        <div class="input-group-text">
+                            <input type="radio" class="form-check-input correct-option" name="correctOption${uniqueId}">
+                        </div>
+                        <input type="text" class="form-control option-input" placeholder="Option 1">
+                        <button type="button" class="btn remove-option-btn"><i class="fas fa-minus-circle"></i></button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm add-option-btn"><i class="fas fa-plus-circle"></i> Add Option</button>
+            </div>
+        </div>
+    `;
+
+    questionsContainer.appendChild(questionItem);
+
+    // Add event listeners for the new question
+    questionItem.querySelector(".remove-question-btn").addEventListener("click", () => {
+        questionItem.remove(); // Fully remove the question card
+    });
+    questionItem.querySelector(".add-option-btn").addEventListener("click", () => addOption(questionItem, uniqueId));
+}
+
+function addOption(questionItem, uniqueId) {
+    const optionsContainer = questionItem.querySelector(".options-container");
+    const optionNumber = optionsContainer.querySelectorAll(".option-input").length + 1;
+
+    const optionItem = document.createElement("div");
+    optionItem.className = "input-group mb-2";
+    optionItem.innerHTML = `
+        <div class="input-group-text">
+            <input type="radio" class="form-check-input correct-option" name="correctOption${uniqueId}">
+        </div>
+        <input type="text" class="form-control option-input" placeholder="Option ${optionNumber}">
+        <button type="button" class="btn remove-option-btn"><i class="fas fa-minus-circle"></i></button>
+    `;
+
+    optionsContainer.appendChild(optionItem);
+
+    // Add event listener for the remove button
+    optionItem.querySelector(".remove-option-btn").addEventListener("click", () => optionItem.remove());
+}
     
 
-  // ========== DATA LOADING FUNCTIONS ==========
+  // =============================================== DATA LOADING FUNCTIONS =================================================================
   function loadDashboardStats() {
     //Fetch students count
     fetchData(`${API_URL}/admin/students/count`, (data) => {
@@ -682,34 +902,86 @@ function handleStudentAction(e) {
                 });
         }
     } else if (action === "edit") {
-        // Populate the modal with student data
-        fetch(`${API_URL}/admin/students/${studentId}`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                document.getElementById("studentFirstName").value = data.firstName;
-                document.getElementById("studentLastName").value = data.lastName;
-                document.getElementById("studentEmail").value = data.email;
-                document.getElementById("studentPhone").value = data.phone || "";
-            })
-             // Close modal
-        const modalElement = document.getElementById("edittudentModal")
-        const modal = bootstrap.Modal.getInstance(modalElement)
-        if (modal) modal.hide()
-            .catch((error) => {
-                console.error(error);
-                showToast("Failed to load student data", "danger");
-       });
-    }
-    else if (action === "assign-quiz") {
-        // Open the assign quiz modal and populate it with student data
-        // const modal = new bootstrap.Modal(document.getElementById("assignQuizModal"));
-        // modal.show();
+      // Clear the form before fetching new data
+      document.getElementById("studentFirstName").value = "";
+      document.getElementById("studentLastName").value = "";
+      document.getElementById("studentEmail").value = "";
+      document.getElementById("studentPhone").value = "";
+      document.getElementById("studentPassword").value = "";
 
-        //Fetch all quizzes
+      // Fetch student data and populate the modal
+      fetch(`${API_URL}/admin/students/${studentId}`, {
+          headers: {
+              Authorization: `Bearer ${token}`,
+          },
+      })
+          .then((response) => response.json())
+          .then((data) => {
+              if (data.student) {
+                  document.getElementById("studentFirstName").value = data.student.firstName;
+                  document.getElementById("studentLastName").value = data.student.lastName;
+                  document.getElementById("studentEmail").value = data.student.email;
+                  document.getElementById("studentPhone").value = data.student.phone || "";
+                  document.getElementById("studentPassword").value = ""; // Leave blank
+              } else {
+                  throw new Error("Failed to fetch student data");
+              }
+          })
+          .catch((error) => {
+              console.error(error);
+              showToast("Failed to load student data", "danger");
+          });
+
+      // Handle form submission
+      const editStudentForm = document.getElementById("edit-student-form");
+      if (!editStudentForm.dataset.listenerAdded) {
+          editStudentForm.addEventListener("submit", (e) => {
+              e.preventDefault();
+
+              const updatedStudent = {
+                  firstName: document.getElementById("studentFirstName").value.trim(),
+                  lastName: document.getElementById("studentLastName").value.trim(),
+                  email: document.getElementById("studentEmail").value.trim(),
+                  phone: document.getElementById("studentPhone").value.trim(),
+                  password: document.getElementById("studentPassword").value.trim(),
+              };
+
+              // Remove empty password field
+              if (!updatedStudent.password) {
+                  delete updatedStudent.password;
+              }
+
+              // Send updated data to the backend
+              fetch(`${API_URL}/admin/students/${studentId}`, {
+                  method: "PUT",
+                  headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify(updatedStudent),
+              })
+                  .then((response) => response.json())
+                  .then((data) => {
+                      if (data.message === "Student updated successfully") {
+                          const modal = bootstrap.Modal.getInstance(document.getElementById("editStudentModal"));
+                          modal.hide(); // Close the modal
+                          showToast("Student updated successfully", "success");
+                          loadStudents(); // Refresh the student list
+                      } else {
+                          throw new Error(data.message || "Failed to update student");
+                      }
+                  })
+                  .catch((error) => {
+                      console.error(error);
+                      showToast("Failed to update student", "danger");
+                  });
+          });
+
+          // Mark the listener as added
+          editStudentForm.dataset.listenerAdded = true;
+      }
+  }
+      else if (action === "assign-quiz") {
          // Fetch all quizzes and populate the modal
          const quizListContainer = document.getElementById("quiz-list");
          const selectAllCheckbox = document.getElementById("select-all-quizzes");
@@ -1016,6 +1288,20 @@ function getActivityColor(type) {
     return colors[type] || 'purple';
 }
 
+
+function showMessages() {
+    document.querySelector('.menu-item[data-target="#messages"]').click();
+}
+
+function showAlerts() {
+    // Implementation would show alerts dropdown
+    console.log('Show alerts dropdown');
+}
+
+function showUserMenu() {
+    // Implementation would show user menu dropdown
+    console.log('Show user menu');
+}
 
   function showToast(message, type = "info") {
     const toastContainer = document.getElementById("toast-container") || document.body;

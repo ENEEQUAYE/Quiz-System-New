@@ -9,7 +9,8 @@ const ActivityLogSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true
+    required: true,
+    maxlength: 500 // Limit description to 500 characters
   },
   performedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -25,5 +26,26 @@ const ActivityLogSchema = new mongoose.Schema({
     ref: 'Quiz'
   }
 }, { timestamps: true });
+
+// Add indexes for better query performance
+ActivityLogSchema.index({ action: 1 });
+ActivityLogSchema.index({ performedBy: 1 });
+ActivityLogSchema.index({ createdAt: -1 });
+
+// Add a virtual field for displaying the target
+ActivityLogSchema.virtual('target').get(function() {
+  return this.targetUser || this.targetQuiz || 'N/A';
+});
+
+// Add a static method for creating logs
+ActivityLogSchema.statics.createLog = async function(action, description, performedBy, targetUser = null, targetQuiz = null) {
+  return this.create({
+    action,
+    description,
+    performedBy,
+    targetUser,
+    targetQuiz
+  });
+};
 
 module.exports = mongoose.model('ActivityLog', ActivityLogSchema);

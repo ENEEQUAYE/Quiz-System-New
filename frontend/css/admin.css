@@ -205,6 +205,109 @@ body {
     color: #042954;
 }
 
+
+/* Dropdown Menus */
+.user-dropdown-menu,
+.notifications-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 15px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    width: 250px;
+    z-index: 1001;
+    display: none;
+    overflow: hidden;
+}
+
+.user-dropdown-menu {
+    right: 10px;
+}
+
+.notifications-dropdown {
+    right: 60px;
+}
+
+.dropdown-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.dropdown-item i {
+    width: 20px;
+    margin-right: 10px;
+    color: #6c757d;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: #e9ecef;
+    margin: 5px 0;
+}
+
+/* Notifications Dropdown Specific */
+.notifications-dropdown {
+    width: 350px;
+}
+
+.dropdown-header {
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.mark-all-read {
+    background: none;
+    border: none;
+    color: #0d6efd;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.notifications-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.notification-item.unread {
+    background-color: #f0f8ff;
+}
+
+.notification-item:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown-footer {
+    padding: 10px 15px;
+    text-align: center;
+    border-top: 1px solid #e9ecef;
+}
+
+.dropdown-footer a {
+    color: #6c757d;
+    text-decoration: none;
+}
+
+/* Show dropdown when active */
+.user-info.active + .user-dropdown-menu,
+.notification-icon.active + .notifications-dropdown {
+    display: block;
+}
 /*Table badge*/
 .bardge {
     display: inline-block;
@@ -658,7 +761,7 @@ body {
     position: fixed;
     top: 20px; /* Position the container at the top */
     right: 40%; /* Position the container at the right */
-    z-index: 1055; /* Ensure it appears above other elements */
+    z-index: 9999; /* Ensure it appears above other elements */
     width: auto; /* Adjust width as needed */
     max-width: 300px; /* Optional: Limit the maximum width */
 }
@@ -943,6 +1046,55 @@ footer{
     border-radius: 0 4px 4px 0;
   }
   
+
+  /*Quiz styles*/
+#create-quiz .form-check-input {
+    width: 40px;
+    height: 20px;
+    background-color: #ddd;
+    border-radius: 20px;
+    transition: background-color 0.3s ease;
+}
+
+#create-quiz .form-check-input:checked {
+    background-color: #0a730d; /* Matches the green theme */
+    border-color: #4CAF50;
+}
+#create-quiz .card-header{
+    background-color: rgb(127, 202, 255);
+   }
+    #create-quiz .card-header h5{
+     color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+    }
+    #create-quiz label{
+        font-weight: bold;
+        color: rgb(13, 13, 57);
+    }
+    #move-question{
+        cursor: move;
+        color: white;
+        font-size: 0.8rem;
+    }
+    .add-btn{
+        background-color: rgb(26, 62, 87);
+        color: white;
+        font-size: 0.8rem;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+    }
+    .remove-option-btn i{
+        color: rgb(255, 0, 0);
+    }
+
+
+
+
+
+
+
+
   /* Responsive Adjustments */
   @media (max-width: 768px) {
     .course-card {
@@ -1059,6 +1211,9 @@ footer{
        display: none;
     }
     .profile-info{
+        flex-direction: column;
+    }
+    #create-quiz .row{
         flex-direction: column;
     }
 

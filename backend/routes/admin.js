@@ -1,4 +1,3 @@
-//backend/routes/admin.js
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
@@ -8,6 +7,7 @@ const User = require('../models/User');
 const Quiz = require('../models/Quiz');
 const Submission = require('../models/Submission');
 const ActivityLog = require('../models/ActivityLog');
+
 
 // Apply auth and admin role middleware to all routes
 router.use(auth);
@@ -275,7 +275,7 @@ router.get('/students', [
   }
 });
 
-//Get total number of students
+// Get total number of students
 router.get('/students/count', async (_req, res) => {
   try {
     const count = await User.countDocuments({ role: 'student' });
@@ -292,24 +292,30 @@ router.get('/students/count', async (_req, res) => {
   }
 });
 
-
 // Get a single student by ID
-router.get('/students/:id', async (req, res) => {
+router.get('/students/:id', auth, async (req, res) => {
   try {
-    const { id } = req.params;
-    const student = await User.findById(id).select('firstName lastName email phone status quizzesAllowed createdAt');
-    if (!student || student.role !== 'student') {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-    res.status(200).json({ message: 'Student fetched successfully', student });
+      const student = await User.findOne({ _id: req.params.id, role: 'student' });
+      if (!student) {
+          return res.status(404).json({ success: false, error: 'Student not found' });
+      }
+      res.json({ success: true, student });
   } catch (error) {
-    console.error('Error fetching student:', error);
-    res.status(500).json({ message: 'Server error' });
+      console.error('Error fetching student:', error);
+      res.status(500).json({ success: false, error: 'Server error' });
   }
 });
 
+
 // Update a student
-router.put("/students/:id", async (req, res) => {
+router.put("/students/:id", [
+  check('id').isMongoId().withMessage('Invalid student ID')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -332,7 +338,14 @@ router.put("/students/:id", async (req, res) => {
 });
 
 // Delete a student
-router.delete("/students/:id", async (req, res) => {
+router.delete("/students/:id", [
+  check('id').isMongoId().withMessage('Invalid student ID')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   try {
     const { id } = req.params;
 
@@ -348,9 +361,11 @@ router.delete("/students/:id", async (req, res) => {
   }
 });
 
+/**
+ * Administrator Management Endpoints
+ */
 
-
-//Get all administartors with pagination and search
+// Get all administrators with pagination and search
 router.get('/administrators', [
   check('page').optional().isInt({ min: 1 }).toInt(),
   check('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
@@ -377,25 +392,32 @@ router.get('/administrators', [
 
     const [admins, count] = await Promise.all([
       User.find(filter)
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-      .exec(),
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
       User.countDocuments(filter)
-      ]);
-      res.json({
-        success: true,
-        data: admins,
-        count: count
-      });
+    ]);
+
+    res.json({
+      success: true,
+      data: admins,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        pages: Math.ceil(count / limit)
+      }
+    });
   } catch (error) {
     console.error('Failed to fetch administrators:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch administrators'
-      });
-      }
     });
+  }
+});
+
 /**
  * Activity Log Endpoints
  */
@@ -437,22 +459,5 @@ router.get('/activities', [
     });
   }
 });
-
-// Helper function to calculate weekly trend
-// async function getWeeklyTrend(model, filter) {
-//   const oneWeekAgo = new Date();
-//   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-//   const [currentCount, previousCount] = await Promise.all([
-//     model.countDocuments(filter),
-//     model.countDocuments({
-//       ...filter,
-//       createdAt: { $lt: oneWeekAgo }
-//     })
-//   ]);
-
-//   if (previousCount === 0) return 0;
-//   return Math.round(((currentCount - previousCount) / previousCount) * 100);
-// }
 
 module.exports = router;

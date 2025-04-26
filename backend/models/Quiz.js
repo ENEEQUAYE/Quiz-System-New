@@ -57,6 +57,7 @@ const QuizSchema = new mongoose.Schema({
   },
   questions: {
     type: [QuestionSchema],
+    default: [], // Default to an empty array
     validate: {
       validator: function(value) {
         return value.length > 0;
@@ -86,6 +87,7 @@ const QuizSchema = new mongoose.Schema({
   },
   timeLimit: { 
     type: Number, 
+    default: 60,
     min: [1, 'Time limit must be at least 1 minute'],
     max: [180, 'Time limit cannot exceed 180 minutes']
   },
@@ -94,17 +96,17 @@ const QuizSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'No attempts made yet'],
   },
-  
   maxAttempts: {
     type: Number,
     default: 1,
     min: [1, 'Max attempts must be at least 1'],
   },
-  tags: [{
-    type: String,
+  tags: {
+    type: [String],
+    default: [], // Default to an empty array
     trim: true,
     maxlength: [20, 'Tag cannot exceed 20 characters']
-  }],
+  },
   category: {
     type: String,
     trim: true,
@@ -139,7 +141,7 @@ QuizSchema.index({ createdBy: 1 });
 
 // Virtual for total points
 QuizSchema.virtual('totalPoints').get(function() {
-  return this.questions.reduce((sum, question) => sum + question.points, 0);
+  return (this.questions || []).reduce((sum, question) => sum + question.points, 0);
 });
 
 // Update timestamp on save
@@ -161,15 +163,21 @@ QuizSchema.statics.search = async function(query) {
 };
 
 // Instance method to check if user can attempt
-QuizSchema.methods.canAttempt = function(userId) {
+QuizSchema.methods.canAttempt = async function(userId) {
   if (!this.isActive) return false;
-  
-  return mongoose.model('Submission').countDocuments({ 
-    student: userId, 
-    quiz: this._id 
-  }).then(count => count < this.maxAttempts);
+  try {
+    const count = await mongoose.model('Submission').countDocuments({ 
+      student: userId, 
+      quiz: this._id 
+    });
+    return count < this.maxAttempts;
+  } catch (error) {
+    console.error('Error checking attempts:', error);
+    return false;
+  }
 };
 
+// Static method to get the most popular quiz
 QuizSchema.statics.getMostPopular = function() {
   return this.aggregate([
     {
