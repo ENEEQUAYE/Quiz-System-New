@@ -160,6 +160,10 @@ SubmissionSchema.virtual('avgTimePerQuestion').get(function() {
 // Pre-save hook to calculate duration
 SubmissionSchema.pre('save', function(next) {
   if (this.isModified('timeCompleted') || this.isNew) {
+    if (!this.timeStarted || !this.timeCompleted) {
+      console.error('Missing timeStarted or timeCompleted:', this);
+      return next(new Error('timeStarted and timeCompleted are required to calculate duration'));
+    }
     this.duration = Math.floor((this.timeCompleted - this.timeStarted) / 1000);
   }
   next();

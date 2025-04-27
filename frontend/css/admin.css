@@ -450,6 +450,11 @@ body {
     font-weight: bold;
 }
 
+#next-quiz{
+    font-weight: 500;
+    font-size: 16px;
+}
+
 /* Quick Action Stats Cards Styles */
 .quick-action-stat-card {
     background-color: white;

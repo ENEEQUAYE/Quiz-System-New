@@ -11,6 +11,8 @@ const userRoutes = require('./routes/user');
 const notificationRoutes = require('./routes/notifications');
 const messageRoutes = require('./routes/messages');
 const settingsRoutes = require('./routes/settings');
+const studentRoutes = require("./routes/student");
+
 
 const app = express();
 
@@ -37,6 +39,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use("/api/students", studentRoutes);
 
 
 // Error handling middleware

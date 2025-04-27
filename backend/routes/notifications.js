@@ -24,4 +24,19 @@ router.get('/counts', auth, async (req, res) => {
     }
 });
 
+// Get all notifications for the logged-in user
+router.get('/', auth, async (req, res) => {
+    try {
+      const notifications = await Notification.find({ user: req.user._id })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
+  
+      res.json({ success: true, notifications });
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch notifications' });
+    }
+  });
+
 module.exports = router;

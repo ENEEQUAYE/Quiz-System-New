@@ -5,7 +5,7 @@ const Quiz = require('../models/Quiz');
 const Submission = require('../models/Submission');
 const { check, validationResult } = require('express-validator');
 
-// Get all quizzes with pagination and search
+// Get all quizzes with pagination, search, and attempts
 router.get('/', auth, async (req, res) => {
   try {
     // Admin gets all quizzes, students only get allowed quizzes
@@ -26,24 +26,47 @@ router.get('/', auth, async (req, res) => {
       ];
     }
 
+    // Fetch quizzes
     const [quizzes, total] = await Promise.all([
       Quiz.find(filter)
         .sort('order')
         .skip(skip)
         .limit(limit)
-        .select('-questions.correctAnswer'), // Hide correct answers
+        .select('title description questions order createdAt'), // Include necessary fields
       Quiz.countDocuments(filter)
     ]);
 
+    // Fetch total attempts for each quiz
+    const attempts = await Submission.aggregate([
+      { $group: { _id: "$quiz", totalAttempts: { $sum: 1 } } },
+    ]);
+
+    // Map attempts to quizzes
+    const attemptsMap = attempts.reduce((map, attempt) => {
+      map[attempt._id] = attempt.totalAttempts;
+      return map;
+    }, {});
+
+    // Add attempts to quizzes
+    const quizzesWithAttempts = quizzes.map((quiz) => ({
+      _id: quiz._id,
+      title: quiz.title,
+      description: quiz.description,
+      totalQuestions: quiz.questions.length,
+      order: quiz.order,
+      createdAt: quiz.createdAt,
+      attempts: attemptsMap[quiz._id] || 0, // Default to 0 if no attempts
+    }));
+
     res.json({
       success: true,
-      data: quizzes,
+      data: quizzesWithAttempts,
       pagination: {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     console.error('Error fetching quizzes:', error);
@@ -123,7 +146,10 @@ router.get('/:id', [
 router.post('/:id/submit', [
   auth,
   check('id').isMongoId().withMessage('Invalid quiz ID'),
-  check('answers').isArray().withMessage('Answers must be an array')
+  check('answers').isArray().withMessage('Answers must be an array'),
+  check('timeStarted').notEmpty().withMessage('Start time is required'),
+  check('timeCompleted').notEmpty().withMessage('Completion time is required'),
+  check('attemptNumber').isInt({ min: 1 }).withMessage('Attempt number is required'),
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -139,32 +165,9 @@ router.post('/:id/submit', [
       });
     }
 
-    // Check access
-    const hasAccess = req.user.role === 'admin' || 
-      (req.user.quizzesAllowed.includes(quiz._id) && quiz.isActive);
-    
-    if (!hasAccess) {
-      return res.status(403).json({ 
-        success: false,
-        error: 'Access to this quiz is restricted' 
-      });
-    }
-
-    // Check if already submitted
-    const existingSubmission = await Submission.findOne({
-      student: req.user._id,
-      quiz: quiz._id
-    });
-    
-    if (existingSubmission) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Quiz already submitted' 
-      });
-    }
+    const { answers, timeStarted, timeCompleted, attemptNumber } = req.body;
 
     // Validate answers
-    const { answers } = req.body;
     if (answers.length !== quiz.questions.length) {
       return res.status(400).json({ 
         success: false,
@@ -178,14 +181,17 @@ router.post('/:id/submit', [
       const selectedOption = answers[index];
       const isCorrect = selectedOption === question.correctAnswer;
       if (isCorrect) score += question.points;
-      
+
       return {
         questionId: question._id,
         questionText: question.questionText,
         selectedOption,
         correctAnswer: question.correctAnswer,
         isCorrect,
-        points: isCorrect ? question.points : 0
+        pointsEarned: isCorrect ? question.points : 0,
+        pointsPossible: question.points,
+        timeSpent: 0, // Add logic to calculate time spent per question if needed
+        questionType: question.type || 'multiple-choice',
       };
     });
 
@@ -195,11 +201,22 @@ router.post('/:id/submit', [
     const submission = new Submission({
       student: req.user._id,
       quiz: quiz._id,
+      attemptNumber,
       answers: answerDetails,
       score,
       totalPossible,
       percentage,
-      passed: percentage >= quiz.passingScore || 70 // Default passing is 70%
+      passed: percentage >= quiz.passingScore,
+      timeStarted,
+      timeCompleted,
+      duration: Math.floor((new Date(timeCompleted) - new Date(timeStarted)) / 1000), // Duration in seconds
+      ipAddress: req.ip,
+      deviceInfo: {
+        browser: req.headers['user-agent'], // Simplified example
+        os: 'unknown', // Add logic to detect OS if needed
+        deviceType: 'desktop', // Add logic to detect device type if needed
+      },
+      status: 'completed',
     });
 
     await submission.save();
@@ -211,7 +228,7 @@ router.post('/:id/submit', [
         score,
         totalPossible,
         percentage,
-        passed: submission.passed
+        passed: submission.passed,
       }
     });
   } catch (error) {
@@ -259,19 +276,23 @@ router.get('/:id/attempts', auth, async (req, res) => {
   }
 });
 
-//Get total quizzes attempts by all students
+
+// Get total attempts made by all students
 router.get('/attempts', auth, async (req, res) => {
   try {
-    const attempts = await Submission.countDocuments();
+    const attempts = await Submission.aggregate([
+      { $group: { _id: null, totalAttempts: { $sum: 1 } } },
+    ]);
+    
     res.json({
       success: true,
-      data: attempts
+      data: attempts[0] ? attempts[0].totalAttempts : 0
     });
   } catch (error) {
-    console.error('Error fetching total quiz attempts:', error);
+    console.error('Error fetching total attempts:', error);
     res.status(500).json({
       success: false,
-      error: 'Server error while fetching total quiz attempts'
+      error: 'Server error while fetching total attempts'
     });
   }
 });

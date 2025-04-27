@@ -1,0 +1,141 @@
+/* Quiz Submission Styles */
+.submission-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .submission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .result-card {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+  }
+  
+  .result-header {
+    padding: 20px;
+    background-color: #042954;
+    color: white;
+    text-align: center;
+  }
+  
+  .result-body {
+    padding: 20px;
+  }
+  
+  .result-stat {
+    text-align: center;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    margin-bottom: 15px;
+  }
+  
+  .result-stat h4 {
+    margin-bottom: 5px;
+    color: #555;
+  }
+  
+  .result-stat p {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+  }
+  
+  .result-stat.passed p {
+    color: #4caf50;
+  }
+  
+  .result-stat.failed p {
+    color: #dc3545;
+  }
+  
+  .question-review {
+    margin-top: 30px;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+  }
+  
+  .review-item {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+  }
+  
+  .review-item.correct {
+    border-left: 4px solid #4caf50;
+  }
+  
+  .review-item.incorrect {
+    border-left: 4px solid #dc3545;
+  }
+  
+  .review-item.unanswered {
+    border-left: 4px solid #6c757d;
+  }
+  
+  .review-question {
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  
+  .review-options {
+    margin-bottom: 10px;
+  }
+  
+  .review-option {
+    padding: 8px 12px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+  }
+  
+  .review-option.selected {
+    background-color: #ffebee;
+  }
+  
+  .review-option.correct {
+    background-color: #e8f5e9;
+  }
+  
+  .review-feedback {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+    font-style: italic;
+  }
+  
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+  
+    .submission-container {
+      box-shadow: none !important;
+      max-width: 100% !important;
+    }
+  
+    .result-card {
+      box-shadow: none !important;
+      border: 1px solid #ddd;
+    }
+  
+    .result-header {
+      background-color: #f8f9fa !important;
+      color: #333 !important;
+    }
+  }
+  

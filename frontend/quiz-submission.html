@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CESSTIG - Quiz Submission</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/student.css">
+    <link rel="icon" type="image/png" href="img/logo.png">
+    <style>
+        .submission-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .submission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .result-card {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .result-header {
+            padding: 20px;
+            background-color: #042954;
+            color: white;
+            text-align: center;
+        }
+        .result-body {
+            padding: 20px;
+        }
+        .result-stat {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            margin-bottom: 15px;
+        }
+        .result-stat h4 {
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .result-stat p {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0;
+        }
+        .result-stat.passed p {
+            color: #4caf50;
+        }
+        .result-stat.failed p {
+            color: #dc3545;
+        }
+        .question-review {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .review-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .review-item.correct {
+            border-left: 4px solid #4caf50;
+        }
+        .review-item.incorrect {
+            border-left: 4px solid #dc3545;
+        }
+        .review-item.unanswered {
+            border-left: 4px solid #6c757d;
+        }
+        .review-question {
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+        .review-options {
+            margin-bottom: 10px;
+        }
+        .review-option {
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+        .review-option.selected {
+            background-color: #ffebee;
+        }
+        .review-option.correct {
+            background-color: #e8f5e9;
+        }
+        .review-feedback {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+            font-style: italic;
+        }
+        .print-btn {
+            margin-left: 10px;
+        }
+        @media print {
+            body {
+                background-color: white !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .submission-container {
+                box-shadow: none !important;
+                max-width: 100% !important;
+            }
+            .result-card {
+                box-shadow: none !important;
+                border: 1px solid #ddd;
+            }
+            .result-header {
+                background-color: #f8f9fa !important;
+                color: #333 !important;
+                border-bottom: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="toast-container" class="position-fixed top-0 end-0 p-3 no-print" style="z-index: 1050;" aria-live="polite" aria-atomic="true"></div>
+    
+    <div class="container mt-4 mb-5">
+        <div class="submission-container">
+            <div class="submission-header">
+                <h2 id="submission-title">Quiz Submission</h2>
+                <div>
+                    <button id="back-btn" class="btn btn-secondary no-print">
+                        <i class="fas fa-arrow-left me-1"></i> Back
+                    </button>
+                    <button id="print-btn" class="btn btn-primary print-btn no-print">
+                        <i class="fas fa-print me-1"></i> Print
+                    </button>
+                </div>
+            </div>
+            
+            <div id="submission-content">
+                <!-- Submission content will be loaded here -->
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Authentication check
+            const token = localStorage.getItem("token");
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            const API_URL = "http://localhost:5000/api";
+            
+            if (!token || !user || user.role !== "student") {
+                showToast("Session expired. Please log in again.", "danger");
+                setTimeout(() => {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("user");
+                    window.location.href = "index.html";
+                }, 2000);
+                return;
+            }
+            
+            // Get submission ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const submissionId = urlParams.get("id");
+            
+            if (!submissionId) {
+                showToast("Invalid submission ID", "danger");
+                setTimeout(() => {
+                    window.location.href = "student-dashboard.html";
+                }, 2000);
+                return;
+            }
+            
+            // Load submission data
+            loadSubmission();
+            
+            // Event listeners
+            document.getElementById("back-btn").addEventListener("click", () => {
+                window.history.back();
+            });
+            
+            document.getElementById("print-btn").addEventListener("click", () => {
+                window.print();
+            });
+            
+            function loadSubmission() {
+                fetch(`${API_URL}/submissions/${submissionId}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (!data.success) {
+                            throw new Error(data.error || "Failed to load submission");
+                        }
+                        
+                        // Display submission data
+                        displaySubmission(data.data);
+                    })
+                    .catch(error => {
+                        console.error("Error loading submission:", error);
+                        showToast("Failed to load submission: " + error.message, "danger");
+                        setTimeout(() => {
+                            window.location.href = "student-dashboard.html";
+                        }, 2000);
+                    });
+            }
+            
+            function displaySubmission(submission) {
+                const submissionContent = document.getElementById("submission-content");
+                
+                // Update title
+                document.getElementById("submission-title").textContent = `${submission.quiz.title} - Submission`;
+                
+                // Calculate percentage
+                const percentage = submission.percentage;
+                const isPassed = submission.passed;
+                
+                // Create submission content
+                let content = `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <h3>${submission.quiz.title}</h3>
+                            <p class="mb-0">Submitted on ${new Date(submission.submittedAt).toLocaleString()}</p>
+                        </div>
+                        <div class="result-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="result-stat">
+                                        <h4>Score</h4>
+                                        <p>${submission.score}/${submission.totalPossible}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="result-stat">
+                                        <h4>Percentage</h4>
+                                        <p>${percentage}%</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="result-stat ${isPassed ? 'passed' : 'failed'}">
+                                        <h4>Status</h4>
+                                        <p>${isPassed ? 'PASSED' : 'FAILED'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h5>Summary</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <ul class="list-group">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Total Questions
+                                                <span class="badge bg-primary rounded-pill">${submission.totalQuestions}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Correct Answers
+                                                <span class="badge bg-success rounded-pill">${submission.correctAnswers}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Incorrect Answers
+                                                <span class="badge bg-danger rounded-pill">${submission.incorrectAnswers}</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <ul class="list-group">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Unanswered Questions
+                                                <span class="badge bg-secondary rounded-pill">${submission.unansweredQuestions || 0}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Time Spent
+                                                <span class="badge bg-info rounded-pill">${formatTime(submission.timeSpent || 0)}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Passing Score
+                                                <span class="badge bg-primary rounded-pill">${submission.quiz.passingScore || 70}%</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add question review section
+                content += `
+                    <div class="question-review">
+                        <h4 class="mb-4">Question Review</h4>
+                `;
+                
+                // Add each question
+                submission.quiz.questions.forEach((question, index) => {
+                    const userAnswer = submission.answers[index];
+                    const correctAnswer = question.correctAnswer;
+                    const isCorrect = userAnswer === correctAnswer;
+                    const isUnanswered = userAnswer === -1;
+                    
+                    let statusClass = isUnanswered ? 'unanswered' : (isCorrect ? 'correct' : 'incorrect');
+                    let statusIcon = isUnanswered ? 
+                        '<i class="fas fa-minus-circle text-secondary"></i>' : 
+                        (isCorrect ? 
+                            '<i class="fas fa-check-circle text-success"></i>' : 
+                            '<i class="fas fa-times-circle text-danger"></i>');
+                    
+                    content += `
+                        <div class="review-item ${statusClass}">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">Question ${index + 1}</h5>
+                                <span>${statusIcon} ${isUnanswered ? 'Unanswered' : (isCorrect ? 'Correct' : 'Incorrect')}</span>
+                            </div>
+                            <div class="review-question">${question.questionText}</div>
+                            <div class="review-options">
+                    `;
+                    
+                    // Add each option
+                    question.options.forEach((option, optionIndex) => {
+                        let optionClass = '';
+                        if (optionIndex === correctAnswer) {
+                            optionClass = 'correct';
+                        }
+                        if (optionIndex === userAnswer && optionIndex !== correctAnswer) {
+                            optionClass = 'selected';
+                        }
+                        
+                        content += `
+                            <div class="review-option ${optionClass}">
+                                <span class="me-2">${String.fromCharCode(65 + optionIndex)}.</span>
+                                ${option}
+                                ${optionIndex === correctAnswer ? ' <i class="fas fa-check text-success ms-2"></i>' : ''}
+                                ${optionIndex === userAnswer && optionIndex !== correctAnswer ? ' <i class="fas fa-times text-danger ms-2"></i>' : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    content += `
+                            </div>
+                    `;
+                    
+                    // Add explanation if available
+                    if (question.explanation) {
+                        content += `
+                            <div class="review-feedback">
+                                <strong>Explanation:</strong> ${question.explanation}
+                            </div>
+                        `;
+                    }
+                    
+                    content += `
+                        </div>
+                    `;
+                });
+                
+                content += `
+                    </div>
+                `;
+                
+                submissionContent.innerHTML = content;
+            }
+            
+            function formatTime(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const remainingSeconds = seconds % 60;
+                
+                let timeString = '';
+                if (hours > 0) {
+                    timeString += `${hours}h `;
+                }
+                timeString += `${minutes}m ${remainingSeconds}s`;
+                
+                return timeString;
+            }
+            
+            function showToast(message, type = "info") {
+                const toastContainer = document.getElementById("toast-container");
+                const toastElement = document.createElement("div");
+                toastElement.className = `toast show align-items-center text-white bg-${type}`;
+                toastElement.setAttribute("role", "alert");
+                toastElement.setAttribute("aria-live", "assertive");
+                toastElement.setAttribute("aria-atomic", "true");
+                toastElement.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                `;
+                
+                toastContainer.appendChild(toastElement);
+                setTimeout(() => {
+                    toastElement.classList.remove("show");
+                    setTimeout(() => toastElement.remove(), 300);
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>

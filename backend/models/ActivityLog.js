@@ -5,7 +5,7 @@ const ActivityLogSchema = new mongoose.Schema({
   action: {
     type: String,
     required: true,
-    enum: ['student_approval', 'quiz_created', 'quiz_assigned', 'user_login', 'system_event']
+    enum: ['student_approval', 'quiz_created', 'quiz_assigned', 'user_login', 'system_event',  'quiz_deleted', 'quiz_updated', 'submission_created', 'submission_graded', 'notification_sent'],
   },
   description: {
     type: String,
