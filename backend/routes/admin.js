@@ -571,7 +571,6 @@ router.delete("/students/:id", [
 });
 
 
-
 // Get detailed report for a single student
 router.get('/students/:id/report', [
   check('id').isMongoId().withMessage('Invalid student ID')
@@ -589,15 +588,37 @@ router.get('/students/:id/report', [
       return res.status(400).json({ success: false, error: 'Invalid student ID' });
     }
 
+    // Fetch student details
     const student = await User.findById(studentId).select('firstName lastName email').lean();
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student not found' });
     }
 
+    // Fetch submissions for the student
     const submissions = await Submission.find({ student: student._id })
       .populate('quiz', 'title')
       .lean();
 
+    // Calculate total quizzes taken, total score, and average score
+    const totalQuizzesTaken = submissions.length;
+    const totalScore = submissions.reduce((sum, sub) => sum + (sub.percentage || 0), 0);
+    const averageScore = totalQuizzesTaken > 0 ? (totalScore / totalQuizzesTaken).toFixed(2) : 0;
+
+    // Determine grade based on average score
+    let grade;
+    if (totalQuizzesTaken === 0) {
+      grade = 'N/A'; // No quizzes taken
+    } else if (averageScore >= 90) {
+      grade = 'A';
+    } else if (averageScore >= 80) {
+      grade = 'B';
+    } else if (averageScore >= 70) {
+      grade = 'C';
+    } else {
+      grade = 'F'; // Below 70%
+    }
+
+    // Prepare the report
     const report = submissions.map(submission => ({
       quizTitle: submission.quiz.title,
       score: submission.score,
@@ -608,9 +629,14 @@ router.get('/students/:id/report', [
       timeCompleted: submission.timeCompleted
     }));
 
+    // Respond with the student report
     res.json({
       success: true,
       student,
+      totalQuizzesTaken,
+      totalScore: totalScore.toFixed(2),
+      averageScore,
+      grade,
       report
     });
   } catch (error) {

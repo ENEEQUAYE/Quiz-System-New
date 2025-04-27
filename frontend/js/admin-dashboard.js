@@ -1153,7 +1153,7 @@ function loadQuizzes(page = 1, search = "") {
                     e.preventDefault();
                     const studentId = e.target.dataset.id;
                     if (studentId) {
-                        window.location.href = `student-report.html?studentId=${studentId}`;
+                        window.open(`student-report.html?studentId=${studentId}`, '_blank');
                     }
                 });
             });
