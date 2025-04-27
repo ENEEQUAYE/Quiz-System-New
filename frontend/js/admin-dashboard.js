@@ -460,34 +460,30 @@
         addQuestionBtn.addEventListener("click", addQuestion);
     }
 
-        document.getElementById("students-report-table-body").addEventListener("click", (e) => {
-        if (e.target.dataset.action === "view-report") {
-            handleStudentReportAction(e);
-        }
-    });
+
 
     // Notification icons
-    // const notificationIcons = document.querySelectorAll(".notification-icon");
-    // notificationIcons.forEach((icon) => {
-    //     icon.addEventListener("click", () => {
-    //         const dropdown = icon.querySelector(".dropdown-menu");
-    //         if (dropdown) {
-    //             dropdown.classList.toggle("show");
-    //         }
-    //     });
-    // });
+    const notificationIcons = document.querySelectorAll(".notification-icon");
+    notificationIcons.forEach((icon) => {
+        icon.addEventListener("click", () => {
+            const dropdown = icon.querySelector(".dropdown-menu");
+            if (dropdown) {
+                dropdown.classList.toggle("show");
+            }
+        });
+    });
 
     // Close dropdowns when clicking outside
-    // document.addEventListener("click", (event) => {
-    //     if (!event.target.closest(".notification-icon")) {
-    //         notificationIcons.forEach((icon) => {
-    //             const dropdown = icon.querySelector(".dropdown-menu");
-    //             if (dropdown) {
-    //                 dropdown.classList.remove("show");
-    //             }
-    //         });
-    //     }
-    // });
+    document.addEventListener("click", (event) => {
+        if (!event.target.closest(".notification-icon")) {
+            notificationIcons.forEach((icon) => {
+                const dropdown = icon.querySelector(".dropdown-menu");
+                if (dropdown) {
+                    dropdown.classList.remove("show");
+                }
+            });
+        }
+    });
     
     // User dropdown (would be implemented with a dropdown menu)
     // document.querySelector('.user-info').addEventListener('click', showUserMenu);
@@ -1151,10 +1147,16 @@ function loadQuizzes(page = 1, search = "") {
             // Update pagination
             updatePagination("students-report", data.pagination);
     
-            // Add event listeners to view report buttons
-            // document.querySelectorAll("#students-report-table-body [data-action]").forEach(btn => {
-            //     btn.addEventListener("click", handleStudentReportAction);
-            // });
+            // Add event listeners to view report buttons and redirect to report page
+            document.querySelectorAll("#students-report-table-body [data-action]").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const studentId = e.target.dataset.id;
+                    if (studentId) {
+                        window.location.href = `student-report.html?studentId=${studentId}`;
+                    }
+                });
+            });
         })
         .catch(error => {
             console.error("Failed to load student reports:", error);

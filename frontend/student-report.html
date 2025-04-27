@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CESSTIG - Student Transcript</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="img/logo.png">
+
+  <style>
+    body {
+      background: #fff;
+      padding: 40px;
+      font-family: 'Arial', sans-serif;
+    }
+    .school-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .school-header img {
+      width: 80px;
+      height: 80px;
+    }
+    .school-name {
+      font-size: 28px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .page-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 30px 0;
+      text-align: center;
+      text-decoration: underline;
+    }
+    .student-info, .transcript-table {
+      margin-bottom: 30px;
+    }
+    .student-info .info-item {
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+    .transcript-table table {
+      width: 100%;
+    }
+    .transcript-table th, .transcript-table td {
+      text-align: center;
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+    @media print {
+      .print-button {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Print Button -->
+  <div class="text-end mb-4 print-button">
+    <button onclick="window.print()" class="btn btn-primary">
+      <i class="fas fa-print"></i> Print Transcript
+    </button>
+  </div>
+
+  <!-- School Header -->
+  <div class="school-header">
+    <img src="img/logo.png" alt="CESSTIG Logo">
+    <div class="school-name">Central Service and Surgical Technicians Institute Ghana</div>
+  </div>
+
+  <!-- Page Title -->
+  <div class="page-title">
+    Student Transcript
+  </div>
+
+  <!-- Student Information -->
+  <div class="student-info">
+    <div class="info-item"><strong>Full Name:</strong> <span id="student-fullname">Loading...</span></div>
+    <div class="info-item"><strong>Email:</strong> <span id="student-email">Loading...</span></div>
+    <div class="info-item"><strong>Total Quizzes Taken:</strong> <span id="total-quizzes">0</span></div>
+    <div class="info-item"><strong>Average Score:</strong> <span id="average-score">0%</span></div>
+    <div class="info-item"><strong>Grade:</strong> <span id="grade">N/A</span></div>
+  </div>
+
+  <!-- Transcript Table -->
+  <div class="transcript-table">
+    <h5>Quiz Submissions</h5>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Quiz Title</th>
+            <th>Score (%)</th>
+            <th>Date Taken</th>
+          </tr>
+        </thead>
+        <tbody id="submissions-table-body">
+          <tr>
+            <td colspan="4">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS and FontAwesome for Print Icon -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+  <!-- Custom JS -->
+  <script src="js/student-report.js"></script>
+
+</body>
+</html>

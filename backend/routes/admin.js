@@ -400,6 +400,107 @@ router.get('/students/count', async (_req, res) => {
   }
 });
 
+// Get student reports with pagination and search
+router.get('/students/report', [
+  check('page').optional().isInt({ min: 1 }).toInt(),
+  check('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+  check('search').optional().trim().escape()
+], async (req, res) => {
+  try {
+    // Validate request parameters
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    // Pagination and search parameters
+    const page = req.query.page || 1;
+    const limit = req.query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    // Filter for students
+    const filter = { role: 'student' };
+    if (req.query.search) {
+      filter.$or = [
+        { firstName: { $regex: req.query.search, $options: 'i' } },
+        { lastName: { $regex: req.query.search, $options: 'i' } },
+        { email: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
+
+    // Fetch students and total count
+    const [students, total] = await Promise.all([
+      User.find(filter)
+        .sort('-createdAt')
+        .skip(skip)
+        .limit(limit)
+        .select('firstName lastName email quizzesAllowed')
+        .lean(),
+      User.countDocuments(filter)
+    ]);
+
+    // Generate reports for each student
+    const studentReports = await Promise.all(students.map(async (student) => {
+      try {
+        const submissions = await Submission.find({ student: student._id }).lean();
+        const totalQuizzesTaken = submissions.length;
+        const totalScore = submissions.reduce((sum, sub) => sum + (sub.percentage || 0), 0);
+        const averageScore = totalQuizzesTaken > 0 ? (totalScore / totalQuizzesTaken).toFixed(2) : 0;
+
+        // Compute grade based on average score
+        let grade;
+        if (totalQuizzesTaken === 0) {
+          grade = 'N/A'; // No quizzes taken
+        } else if (averageScore >= 90) {
+          grade = 'A';
+        } else if (averageScore >= 80) {
+          grade = 'B';
+        } else if (averageScore >= 70) {
+          grade = 'C';
+        } else {
+          grade = 'F'; // Below 70%
+        }
+
+        return {
+          ...student,
+          totalQuizzesTaken,
+          totalScore: totalScore.toFixed(2),
+          averageScore,
+          grade
+        };
+      } catch (error) {
+        console.error(`Error processing student ${student._id}:`, error);
+        return {
+          ...student,
+          totalQuizzesTaken: 0,
+          totalScore: 0,
+          averageScore: 0,
+          grade: 'N/A'
+        };
+      }
+    }));
+
+    // Respond with student reports
+    res.json({
+      success: true,
+      data: studentReports,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error in /students/report:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch student reports',
+      details: error.message
+    });
+  }
+});
+
 // Get a single student by ID
 router.get('/students/:id', auth, async (req, res) => {
   try {
@@ -469,84 +570,7 @@ router.delete("/students/:id", [
   }
 });
 
-// Get student reports with pagination and search
-router.get('/students/report', [
-  check('page').optional().isInt({ min: 1 }).toInt(),
-  check('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
-  check('search').optional().trim().escape()
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
-    const page = req.query.page || 1;
-    const limit = req.query.limit || 10;
-    const skip = (page - 1) * limit;
-
-    const filter = { role: 'student' };
-    if (req.query.search) {
-      filter.$or = [
-        { firstName: { $regex: req.query.search, $options: 'i' } },
-        { lastName: { $regex: req.query.search, $options: 'i' } },
-        { email: { $regex: req.query.search, $options: 'i' } }
-      ];
-    }
-
-    const [students, total] = await Promise.all([
-      User.find(filter)
-        .sort('-createdAt')
-        .skip(skip)
-        .limit(limit)
-        .select('firstName lastName email quizzesAllowed')
-        .lean(),
-      User.countDocuments(filter)
-    ]);
-
-    const studentReports = await Promise.all(students.map(async (student) => {
-      try {
-        const submissions = await Submission.find({ student: student._id }).lean();
-        const totalQuizzesTaken = submissions.length;
-        const totalScore = submissions.reduce((sum, sub) => sum + (sub.percentage || 0), 0);
-        const grade = totalQuizzesTaken > 0 ? (totalScore / totalQuizzesTaken).toFixed(2) : 'N/A';
-
-        return {
-          ...student,
-          totalQuizzesTaken,
-          totalScore: totalQuizzesTaken > 0 ? totalScore.toFixed(2) : 0,
-          grade
-        };
-      } catch (error) {
-        console.error(`Error processing student ${student._id}:`, error);
-        return {
-          ...student,
-          totalQuizzesTaken: 0,
-          totalScore: 0,
-          grade: 'N/A'
-        };
-      }
-    }));
-
-    res.json({
-      success: true,
-      data: studentReports,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error in /students/report:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch student reports',
-      details: error.message
-    });
-  }
-});
 
 // Get detailed report for a single student
 router.get('/students/:id/report', [
@@ -694,3 +718,6 @@ router.get('/activities', [
 });
 
 module.exports = router;
+
+
+
