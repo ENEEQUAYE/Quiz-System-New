@@ -588,7 +588,7 @@ router.get('/students/:id/report', [
       return res.status(400).json({ success: false, error: 'Invalid student ID' });
     }
 
-    // Fetch student details
+    // Fetch student details to frontend
     const student = await User.findById(studentId).select('firstName lastName email').lean();
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student not found' });
