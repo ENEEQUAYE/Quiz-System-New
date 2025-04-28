@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_URL = "http://localhost:5000/api"; // Replace with your actual API URL
+  const API_URL = "https://quiz-system-new.onrender.com/api"; // Replace with your actual API URL
   const token = localStorage.getItem("token");
 
   if (!token) {
@@ -67,5 +67,5 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Failed to load student report. Please try again.");
     });
 
-    
+
 });

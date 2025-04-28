@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     console.log("Token:", token);
     console.log("User:", user);
-    const API_URL = "http://localhost:5000/api"
+    const API_URL = "https://quiz-system-new.onrender.com/api"
   
     // Check if user is logged in and has admin role
     if (!token || !user || user.role !== "admin") {
