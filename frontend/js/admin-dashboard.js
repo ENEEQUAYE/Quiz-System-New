@@ -460,30 +460,35 @@
         addQuestionBtn.addEventListener("click", addQuestion);
     }
 
+    const uploadQuizForm = document.getElementById("upload-quiz-form");
+    if (uploadQuizForm) {
+        uploadQuizForm.addEventListener("submit", handleUploadAndExtractQuestions);
+    }
 
 
-    // Notification icons
-    const notificationIcons = document.querySelectorAll(".notification-icon");
-    notificationIcons.forEach((icon) => {
-        icon.addEventListener("click", () => {
-            const dropdown = icon.querySelector(".dropdown-menu");
-            if (dropdown) {
-                dropdown.classList.toggle("show");
-            }
-        });
-    });
 
-    // Close dropdowns when clicking outside
-    document.addEventListener("click", (event) => {
-        if (!event.target.closest(".notification-icon")) {
-            notificationIcons.forEach((icon) => {
-                const dropdown = icon.querySelector(".dropdown-menu");
-                if (dropdown) {
-                    dropdown.classList.remove("show");
-                }
-            });
-        }
-    });
+    // // Notification icons
+    // const notificationIcons = document.querySelectorAll(".notification-icon");
+    // notificationIcons.forEach((icon) => {
+    //     icon.addEventListener("click", () => {
+    //         const dropdown = icon.querySelector(".dropdown-menu");
+    //         if (dropdown) {
+    //             dropdown.classList.toggle("show");
+    //         }
+    //     });
+    // });
+
+    // // Close dropdowns when clicking outside
+    // document.addEventListener("click", (event) => {
+    //     if (!event.target.closest(".notification-icon")) {
+    //         notificationIcons.forEach((icon) => {
+    //             const dropdown = icon.querySelector(".dropdown-menu");
+    //             if (dropdown) {
+    //                 dropdown.classList.remove("show");
+    //             }
+    //         });
+    //     }
+    // });
     
     // User dropdown (would be implemented with a dropdown menu)
     // document.querySelector('.user-info').addEventListener('click', showUserMenu);
@@ -503,6 +508,129 @@
     if (uploadPicInput) {
       uploadPicInput.addEventListener("change", handleProfilePictureUpload)
     }
+  }
+
+  async function handleUploadAndExtractQuestions(event) {
+      event.preventDefault();
+  
+      const fileInput = document.getElementById("quiz-file");
+      const file = fileInput.files[0];
+  
+      if (!file) {
+          showToast("Please select a file to upload.", "warning");
+          return;
+      }
+  
+      const formData = new FormData();
+      formData.append("file", file);
+  
+      try {
+          const response = await fetch(`${API_URL}/admin/quizzes/upload`, {
+              method: "POST",
+              headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`, // Include the token
+              },
+              body: formData,
+          });
+  
+          const data = await response.json();
+          console.log("API Response:", data);
+  
+          if (data.success && data.questions) {
+              // Automatically switch to the Create Quiz menu
+              activateCreateQuizMenu();
+  
+              // Populate the questions in the Create Quiz section
+              populateQuestionsInCreateQuiz(data.questions);
+  
+              showToast("Questions uploaded successfully. Please select the correct answers.", "success");
+  
+              // Close the modal
+              const modal = bootstrap.Modal.getInstance(document.getElementById("uploadQuizModal"));
+              modal.hide();
+          } else {
+              showToast(data.error || "Failed to extract questions.", "danger");
+          }
+      } catch (error) {
+          console.error("Error uploading file:", error);
+          showToast("An error occurred while uploading the file.", "danger");
+      }
+  }
+        
+  // Function to activate the Create Quiz menu
+  function activateCreateQuizMenu() {
+      // Hide all dashboard content
+      document.querySelectorAll(".dashboard-content").forEach((content) => {
+          content.style.display = "none";
+      });
+  
+      // Show the Create Quiz section
+      const createQuizSection = document.getElementById("create-quiz");
+      if (createQuizSection) {
+          createQuizSection.style.display = "block";
+      }
+  
+      // Update the active menu item in the sidebar
+      document.querySelectorAll(".menu-item").forEach((item) => {
+          item.classList.remove("active");
+      });
+      const createQuizMenuItem = document.querySelector(".menu-item[data-target='#create-quiz']");
+      if (createQuizMenuItem) {
+          createQuizMenuItem.classList.add("active");
+      }
+  }
+
+
+  
+  // Function to populate questions in the Create Quiz section
+  function populateQuestionsInCreateQuiz(questions) {
+      const questionsContainer = document.getElementById("questions-container");
+      const noQuestions = document.getElementById("no-questions");
+  
+      if (noQuestions) {
+          noQuestions.remove();
+      }
+  
+      questions.forEach((question, index) => {
+          const uniqueId = Date.now() + index;
+  
+          const questionItem = document.createElement("div");
+          questionItem.className = "card question-item mb-3";
+          questionItem.innerHTML = `
+              <div class="card-header">
+                  <h5 class="card-title">Question ${index + 1}</h5>
+                  <div class="card-actions">
+                      <button type="button" class="action-btn red remove-question-btn"><i class="fas fa-trash"></i></button>
+                  </div>
+              </div>
+              <div class="card-body">
+                  <div class="mb-3">
+                      <label class="form-label">Question Text</label>
+                      <textarea class="form-control question-text" rows="3" placeholder="Enter question text">${question.questionText}</textarea>
+                  </div>
+                  <div class="mb-3">
+                      <label class="form-label">Options</label>
+                      <div class="options-container">
+                          ${question.options.map((option, i) => `
+                              <div class="input-group mb-2">
+                                  <div class="input-group-text">
+                                      <input type="radio" class="form-check-input correct-option" name="correctOption${uniqueId}">
+                                  </div>
+                                  <input type="text" class="form-control option-input" value="${option}">
+                              </div>
+                          `).join("")}
+                      </div>
+                  </div>
+              </div>
+          `;
+  
+          questionsContainer.appendChild(questionItem);
+  
+          // Add event listener to remove the question
+          questionItem.querySelector(".remove-question-btn").addEventListener("click", () => {
+              questionItem.remove();
+          });
+      });
   }
 
   function setupFormHandlers() {

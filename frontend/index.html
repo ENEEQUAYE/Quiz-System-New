@@ -122,9 +122,6 @@
       const email = document.getElementById("loginEmail").value;
       const password = document.getElementById("loginPassword").value;
 
-      console.log("Login Email:", email);
-      console.log("Login Password:", password);
-
       try {
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
           method: "POST",
@@ -135,8 +132,6 @@
         });
 
         const data = await response.json();
-
-        console.log("Login Response:", data);
 
         if (!response.ok) {
           throw new Error(data.error || "Login failed");

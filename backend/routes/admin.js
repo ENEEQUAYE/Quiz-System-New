@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 const express = require('express');
 const router = express.Router();
+const multer = require("multer");
+const pdfParse = require("pdf-parse");
+const mammoth = require("mammoth");
+const fs = require("fs");
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/role');
 const { check, validationResult } = require('express-validator');
@@ -9,6 +13,8 @@ const Quiz = require('../models/Quiz');
 const Submission = require('../models/Submission');
 const ActivityLog = require('../models/ActivityLog');
 
+// Configure multer for file uploads
+const upload = multer({ dest: "uploads/" });
 
 // Apply auth and admin role middleware to all routes
 router.use(auth);
@@ -169,6 +175,44 @@ router.post('/quizzes', [
       success: false,
       error: 'Failed to create quiz'
     });
+  }
+});
+
+// Route to upload and parse quiz document
+router.post("/quizzes/upload", upload.single("file"), async (req, res) => {
+  try {
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ success: false, error: "No file uploaded" });
+    }
+
+    let text = "";
+
+    // Parse the file based on its type
+    if (file.mimetype === "application/pdf") {
+      const dataBuffer = fs.readFileSync(file.path);
+      const pdfData = await pdfParse(dataBuffer);
+      text = pdfData.text;
+    } else if (file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      const docxData = await mammoth.extractRawText({ path: file.path });
+      text = docxData.value;
+    } else if (file.mimetype === "text/plain") {
+      text = fs.readFileSync(file.path, "utf-8");
+    } else {
+      return res.status(400).json({ success: false, error: "Unsupported file type" });
+    }
+
+    // Extract questions from the text
+    const questions = extractQuestionsFromText(text);
+
+    // Clean up uploaded file
+    fs.unlinkSync(file.path);
+
+    res.json({ success: true, questions });
+  } catch (error) {
+    console.error("Error processing file:", error);
+    res.status(500).json({ success: false, error: "Failed to process file" });
   }
 });
 
@@ -776,6 +820,21 @@ router.get('/activities', [
     });
   }
 });
+
+// Function to extract questions from text
+function extractQuestionsFromText(text) {
+    const questions = [];
+    const questionRegex = /\d+\.\s+(.+?)\n\s*a\.\s+(.+?)\n\s*b\.\s+(.+?)\n\s*c\.\s+(.+?)\n\s*d\.\s+(.+?)(?=\n\d+\.|\n*$)/gs;
+
+    let match;
+    while ((match = questionRegex.exec(text)) !== null) {
+        questions.push({
+            questionText: match[1].trim(), // Extracted question text without the number
+            options: [match[2].trim(), match[3].trim(), match[4].trim(), match[5].trim()],
+        });
+    }
+    return questions;
+}
 
 module.exports = router;
 

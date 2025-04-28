@@ -322,9 +322,9 @@
                         <span class="breadcrumb-separator">›</span>
                         <span class="breadcrumb-item active">Quizzes</span>
                     </div>
-                    <div>
-                        <button class="submit-btn" data-bs-toggle="menu-item" data-bs-target="#create-quiz">Create Quiz</button>
-                    </div>
+                    <button class="submit-btn" data-bs-toggle="modal" data-bs-target="#uploadQuizModal">
+                        Upload Quiz File
+                    </button>
                 </div>
 
                 <!-- Search Bar -->
@@ -674,6 +674,26 @@
       });
     </script>
 
+
+<div class="modal fade" id="uploadQuizModal" tabindex="-1" aria-labelledby="uploadQuizModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadQuizModalLabel">Upload Quiz File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="upload-quiz-form" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="quiz-file" class="form-label">Upload Quiz Document</label>
+                        <input type="file" id="quiz-file" name="file" class="form-control" accept=".pdf,.docx,.txt" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload and Extract Questions</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 
      <!-- jQuery -->
