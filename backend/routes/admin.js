@@ -442,10 +442,33 @@ router.get('/students/report', [
     // Generate reports for each student
     const studentReports = await Promise.all(students.map(async (student) => {
       try {
-        const submissions = await Submission.find({ student: student._id }).lean();
-        const totalQuizzesTaken = submissions.length;
-        const totalScore = submissions.reduce((sum, sub) => sum + (sub.percentage || 0), 0);
-        const averageScore = totalQuizzesTaken > 0 ? (totalScore / totalQuizzesTaken).toFixed(2) : 0;
+        const submissions = await Submission.find({ student: student._id })
+          .populate('quiz', 'title')
+          .lean();
+
+        // Group submissions by quiz ID and calculate the highest score for each quiz
+        const quizScores = {};
+        submissions.forEach(submission => {
+          const quizId = submission.quiz._id.toString();
+          if (!quizScores[quizId] || submission.percentage > quizScores[quizId].percentage) {
+            quizScores[quizId] = {
+              quizTitle: submission.quiz.title,
+              percentage: submission.percentage
+            };
+          }
+        });
+
+        // Calculate total quizzes taken, total score, and average score
+        const uniqueQuizzes = Object.values(quizScores);
+        const totalQuizzesTaken = uniqueQuizzes.length;
+        const totalScore = uniqueQuizzes.reduce((sum, quiz) => sum + quiz.percentage, 0);
+        const averageScore = totalQuizzesTaken > 0 ? totalScore / totalQuizzesTaken : 0;
+
+        // Format total score and average score
+        const formattedTotalScore = Math.round(totalScore); // Always a whole number
+        const formattedAverageScore = Number.isInteger(averageScore)
+          ? averageScore // Display as a whole number if no decimals
+          : averageScore.toFixed(2); // Otherwise, fix to 2 decimal places
 
         // Compute grade based on average score
         let grade;
@@ -464,8 +487,8 @@ router.get('/students/report', [
         return {
           ...student,
           totalQuizzesTaken,
-          totalScore: totalScore.toFixed(2),
-          averageScore,
+          totalScore: formattedTotalScore,
+          averageScore: formattedAverageScore,
           grade
         };
       } catch (error) {
@@ -500,6 +523,7 @@ router.get('/students/report', [
     });
   }
 });
+
 
 // Get a single student by ID
 router.get('/students/:id', auth, async (req, res) => {
@@ -588,7 +612,7 @@ router.get('/students/:id/report', [
       return res.status(400).json({ success: false, error: 'Invalid student ID' });
     }
 
-    // Fetch student details to frontend
+    // Fetch student details
     const student = await User.findById(studentId).select('firstName lastName email').lean();
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student not found' });
@@ -599,9 +623,23 @@ router.get('/students/:id/report', [
       .populate('quiz', 'title')
       .lean();
 
+    // Group submissions by quiz ID and calculate the highest score for each quiz
+    const quizScores = {};
+    submissions.forEach(submission => {
+      const quizId = submission.quiz._id.toString();
+      if (!quizScores[quizId] || submission.percentage > quizScores[quizId].percentage) {
+        quizScores[quizId] = {
+          quizTitle: submission.quiz.title,
+          percentage: submission.percentage,
+          timeCompleted: submission.timeCompleted
+        };
+      }
+    });
+
     // Calculate total quizzes taken, total score, and average score
-    const totalQuizzesTaken = submissions.length;
-    const totalScore = submissions.reduce((sum, sub) => sum + (sub.percentage || 0), 0);
+    const uniqueQuizzes = Object.values(quizScores);
+    const totalQuizzesTaken = uniqueQuizzes.length;
+    const totalScore = uniqueQuizzes.reduce((sum, quiz) => sum + quiz.percentage, 0);
     const averageScore = totalQuizzesTaken > 0 ? (totalScore / totalQuizzesTaken).toFixed(2) : 0;
 
     // Determine grade based on average score
@@ -619,14 +657,10 @@ router.get('/students/:id/report', [
     }
 
     // Prepare the report
-    const report = submissions.map(submission => ({
-      quizTitle: submission.quiz.title,
-      score: submission.score,
-      totalPossible: submission.totalPossible,
-      percentage: submission.percentage,
-      passed: submission.passed,
-      attemptNumber: submission.attemptNumber,
-      timeCompleted: submission.timeCompleted
+    const report = uniqueQuizzes.map((quiz, index) => ({
+      quizTitle: quiz.quizTitle,
+      percentage: quiz.percentage,
+      timeCompleted: quiz.timeCompleted
     }));
 
     // Respond with the student report

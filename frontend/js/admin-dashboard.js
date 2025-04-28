@@ -1133,7 +1133,8 @@ function loadQuizzes(page = 1, search = "") {
                     <td>${student.firstName} ${student.lastName}</td>
                     <td>${student.email}</td>
                     <td>${student.totalQuizzesTaken}</td>
-                    <td>${student.totalScore}%</td>
+                    <td>${student.totalScore}</td>
+                    <td>${student.averageScore}%</td>
                     <td>${student.grade}</td>
                     <td>
                         <button class="btn btn-sm btn-primary" data-id="${student._id}" data-action="view-report">

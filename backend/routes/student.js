@@ -87,7 +87,7 @@ router.get("/quizzes", async (req, res) => {
     }
 
     const quizzes = await Quiz.find(filter)
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: 1 })
       .skip(skip)
       .limit(limit)
       .select("title questions timeLimit maxAttempts");
@@ -169,22 +169,17 @@ router.get("/gradebook", async (req, res) => {
           percentage: 1,
           passed: 1,
           grade: {
-            $cond: {
-                if: { $gte: ["$percentage", 90] },
-                then: "A",
-                else: {
-                  if: { $gte: ["$percentage", 80] },
-                  then: "B",
-                  else: {
-                    if: { $gte: ["$percentage", 70] },
-                    then: "C",
-                    else: "F",
-                  },
-                },
-            }
+            $switch: {
+              branches: [
+                { case: { $gte: ["$percentage", 90] }, then: "A" },
+                { case: { $gte: ["$percentage", 80] }, then: "B" },
+                { case: { $gte: ["$percentage", 70] }, then: "C" },
+              ],
+              default: "F",
+            },
+          },
         },
       },
-    },
     ]);
 
     res.json({ success: true, gradebook });
@@ -193,6 +188,7 @@ router.get("/gradebook", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch gradebook" });
   }
 });
+
  
 /**
  * @desc    Get profile
