@@ -165,7 +165,84 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.location.href = "index.html";
             });
         }
+     // Pagination handlers
+     setupPaginationHandlers()
+
+     // Search input handlers
+     setupSearchHandlers()
+
     }
+
+
+    // ========== PAGINATION HANDLERS ==========
+    function setupPaginationHandlers() {
+        // Pagination buttons for quizzes
+        setupPaginationForSection("quizzes", loadQuizzes)
+
+        // Pagination buttons for gradebook
+        setupPaginationForSection("gradebook", loadGradebook)
+    }
+
+    function setupPaginationForSection(section, loadFunction) {
+        const prevBtn = document.getElementById(`${section}-prev-page-btn`);
+        const nextBtn = document.getElementById(`${section}-next-page-btn`);
+        const pageNum = document.getElementById(`${section}-page-num`);
+    
+        if (prevBtn && nextBtn && pageNum) {
+            prevBtn.addEventListener("click", () => {
+                const currentPage = parseInt(pageNum.textContent, 10);
+                if (currentPage > 1) {
+                    loadFunction(currentPage - 1); // Load the previous page
+                }
+            });
+    
+            nextBtn.addEventListener("click", () => {
+                const currentPage = parseInt(pageNum.textContent, 10);
+                const totalPages = parseInt(nextBtn.dataset.totalPages, 10); // Store total pages in a data attribute
+                if (currentPage < totalPages) {
+                    loadFunction(currentPage + 1); // Load the next page
+                }
+            });
+        }
+    }
+
+    function updatePagination(section, pagination) {
+        const prevBtn = document.getElementById(`${section}-prev-page-btn`);
+        const nextBtn = document.getElementById(`${section}-next-page-btn`);
+        const pageNum = document.getElementById(`${section}-page-num`);
+    
+        if (prevBtn && nextBtn && pageNum) {
+            const { page: currentPage, totalPages } = pagination;
+    
+            // Update the page number
+            pageNum.textContent = currentPage;
+    
+            // Enable/disable the Previous button
+            prevBtn.disabled = currentPage === 1;
+    
+            // Enable/disable the Next button
+            nextBtn.disabled = currentPage === totalPages;
+    
+            // Store total pages in a data attribute for the Next button
+            nextBtn.dataset.totalPages = totalPages;
+        }
+    }
+
+    // ========== SEARCH HANDLERS ==========
+    function setupSearchHandlers() {
+        const searchQuizzesInput = document.getElementById("search-quizzes")
+        if (searchQuizzesInput) {
+          searchQuizzesInput.addEventListener("input", (event) => {
+            const searchTerm = event.target.value.trim()
+            loadQuizzes(1, searchTerm)
+          })
+        }
+
+    }
+
+
+
+
 
     // ========== DATA LOADING FUNCTIONS ==========
     function loadDashboardStats() {
@@ -190,83 +267,86 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     }
 
-  function loadQuizzes(page = 1, search = "") {
-      const quizzesTableBody = document.getElementById("quizzes-table-body");
-      if (!quizzesTableBody) return;
-  
-      // Show loading state
-      quizzesTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Loading...</td></tr>';
-  
-      fetch(`${API_URL}/students/quizzes?page=${page}&search=${search}`, {
-          headers: {
-              Authorization: `Bearer ${token}`,
-          },
-      })
-          .then((response) => response.json())
-          .then((data) => {
-              quizzesTableBody.innerHTML = ""; // Clear loading state
-  
-              if (data.success) {
-                  if (data.quizzes.length === 0) {
-                      quizzesTableBody.innerHTML = '<tr><td colspan="6" class="text-center">No quizzes available</td></tr>';
-                      return;
-                  }
-  
-                  data.quizzes.forEach((quiz, index) => {
-                      const attemptsLeft = quiz.maxAttempts
-                          ? `${quiz.attempts}/${quiz.maxAttempts}`
-                          : "Unlimited";
-  
-                      const row = document.createElement("tr");
-                      row.innerHTML = `
-                          <td>${index + 1}</td>
-                          <td>${quiz.title}</td>
-                          <td>${quiz.totalQuestions}</td>
-                          <td>${quiz.duration} mins</td>
-                          <td>${attemptsLeft}</td>
-                          <td>
-                              <button class="btn btn-primary btn-sm start-quiz-btn" data-id="${quiz._id}" ${
-                                  quiz.maxAttempts && quiz.attempts >= quiz.maxAttempts
-                                      ? "disabled"
-                                      : ""
-                              }>Start</button>
-                          </td>
-                      `;
-                      quizzesTableBody.appendChild(row);
-                  });
-  
-                  // Add event listeners to "Start" buttons
-                  document.querySelectorAll(".start-quiz-btn").forEach((button) => {
-                      button.addEventListener("click", (e) => {
-                          const quizId = e.target.getAttribute("data-id");
-                          if (quizId) {
-                              // Redirect to the take-quiz page with the quiz ID
-                              window.location.href = `take-quiz.html?id=${quizId}`;
-                          }
-                      });
-                  });
-  
-                  // Update pagination if applicable
-                  if (data.pagination) {
-                      updatePagination("quizzes", data.pagination);
-                  }
-              } else {
-                  quizzesTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load quizzes</td></tr>';
-                  console.error("Failed to load quizzes:", data.error);
-              }
-          })
-          .catch((error) => {
-              quizzesTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load quizzes</td></tr>';
-              console.error("Error loading quizzes:", error);
-          });
-  }
+// ========== QUIZZES ==========
+function loadQuizzes(page = 1, search = "") {
+    const quizzesTableBody = document.getElementById("quizzes-table-body");
+    if (!quizzesTableBody) return;
+
+    // Show loading state
+    quizzesTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Loading...</td></tr>';
+
+    fetch(`${API_URL}/students/quizzes?page=${page}&search=${search}`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            quizzesTableBody.innerHTML = ""; // Clear loading state
+
+            if (data.success) {
+                if (data.quizzes.length === 0) {
+                    quizzesTableBody.innerHTML = '<tr><td colspan="6" class="text-center">No quizzes available</td></tr>';
+                    return;
+                }
+
+                data.quizzes.forEach((quiz, index) => {
+                    const attemptsLeft = quiz.maxAttempts
+                        ? `${quiz.attempts}/${quiz.maxAttempts}`
+                        : "Unlimited";
+
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${quiz.title}</td>
+                        <td>${quiz.totalQuestions}</td>
+                        <td>${quiz.duration} mins</td>
+                        <td>${attemptsLeft}</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm start-quiz-btn" data-id="${quiz._id}" ${
+                                quiz.maxAttempts && quiz.attempts >= quiz.maxAttempts
+                                    ? "disabled"
+                                    : ""
+                            }>Start</button>
+                        </td>
+                    `;
+                    quizzesTableBody.appendChild(row);
+                });
+
+                // Update pagination
+                updatePagination("quizzes", data.pagination);
+
+                 // Add event listeners to "Start" buttons
+                 document.querySelectorAll(".start-quiz-btn").forEach((button) => {
+                    button.addEventListener("click", (e) => {
+                        const quizId = e.target.getAttribute("data-id");
+                        if (quizId) {
+                            // Redirect to the take-quiz page with the quiz ID
+                            window.location.href = `take-quiz.html?id=${quizId}`;
+                        }
+                    });
+                });
+                
+            } else {
+                quizzesTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load quizzes</td></tr>';
+                console.error("Failed to load quizzes:", data.error);
+            }
+        })
+        .catch((error) => {
+            quizzesTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load quizzes</td></tr>';
+            console.error("Error loading quizzes:", error);
+        });
+}
 
     function loadGradebook() {
         const gradebookTableBody = document.getElementById("gradebook-table-body");
-        if (!gradebookTableBody) return;
+        const cummulatedScoreElement = document.getElementById("cummulated-score");
+        const gradeElement = document.getElementById("grade");
+    
+        if (!gradebookTableBody || !cummulatedScoreElement || !gradeElement) return;
     
         // Show loading state
-        gradebookTableBody.innerHTML = '<tr><td colspan="4" class="text-center">Loading...</td></tr>';
+        gradebookTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Loading...</td></tr>';
     
         fetch(`${API_URL}/students/gradebook`, {
             headers: {
@@ -279,9 +359,14 @@ document.addEventListener("DOMContentLoaded", () => {
     
                 if (data.success) {
                     if (data.gradebook.length === 0) {
-                        gradebookTableBody.innerHTML = '<tr><td colspan="4" class="text-center">No grades available</td></tr>';
+                        gradebookTableBody.innerHTML = '<tr><td colspan="6" class="text-center">No grades available</td></tr>';
+                        cummulatedScoreElement.textContent = "0%";
+                        gradeElement.textContent = "N/A";
                         return;
                     }
+    
+                    let totalPercentage = 0;
+                    let totalEntries = data.gradebook.length;
     
                     data.gradebook.forEach((entry, index) => {
                         const row = document.createElement("tr");
@@ -290,18 +375,37 @@ document.addEventListener("DOMContentLoaded", () => {
                             <td>${entry.quizTitle}</td>
                             <td>${entry.highestScore}/${entry.totalPossible}</td>
                             <td>${entry.percentage}%</td>
-                             <td>${entry.grade}</td>
+                            <td>${entry.grade}</td>
                             <td>${entry.passed ? "Passed" : "Failed"}</td>
                         `;
                         gradebookTableBody.appendChild(row);
+    
+                        // Accumulate percentage for cumulative score calculation
+                        totalPercentage += entry.percentage;
                     });
+    
+                    // Calculate cumulative score
+                    const cummulatedScore = (totalPercentage / totalEntries).toFixed(2);
+                    cummulatedScoreElement.textContent = `${cummulatedScore}%`;
+    
+                    // Determine grade based on cumulative score
+                    let grade = "F";
+                    if (cummulatedScore >= 90) grade = "A";
+                    else if (cummulatedScore >= 80) grade = "B";
+                    else if (cummulatedScore >= 70) grade = "C";
+    
+                    gradeElement.textContent = grade;
                 } else {
-                    gradebookTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Failed to load gradebook</td></tr>';
+                    gradebookTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load gradebook</td></tr>';
+                    cummulatedScoreElement.textContent = "0%";
+                    gradeElement.textContent = "N/A";
                     console.error("Failed to load gradebook:", data.error);
                 }
             })
             .catch((error) => {
-                gradebookTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Failed to load gradebook</td></tr>';
+                gradebookTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load gradebook</td></tr>';
+                cummulatedScoreElement.textContent = "0%";
+                gradeElement.textContent = "N/A";
                 console.error("Error loading gradebook:", error);
             });
     }
@@ -345,50 +449,6 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch((error) => {
                 console.error("Error loading messages:", error);
             });
-    }
-
-        function updatePagination(section, pagination) {
-        const paginationContainer = document.getElementById(`${section}-pagination`);
-        if (!paginationContainer) return;
-    
-        paginationContainer.innerHTML = ""; // Clear existing pagination
-    
-        const { currentPage, totalPages } = pagination;
-    
-        // Create previous button
-        const prevButton = document.createElement("button");
-        prevButton.textContent = "Previous";
-        prevButton.className = "btn btn-sm btn-secondary";
-        prevButton.disabled = currentPage === 1;
-        prevButton.addEventListener("click", () => {
-            if (currentPage > 1) {
-                loadQuizzes(currentPage - 1); // Adjust this function call for the section
-            }
-        });
-        paginationContainer.appendChild(prevButton);
-    
-        // Create page buttons
-        for (let i = 1; i <= totalPages; i++) {
-            const pageButton = document.createElement("button");
-            pageButton.textContent = i;
-            pageButton.className = `btn btn-sm ${i === currentPage ? "btn-primary" : "btn-secondary"}`;
-            pageButton.addEventListener("click", () => {
-                loadQuizzes(i); // Adjust this function call for the section
-            });
-            paginationContainer.appendChild(pageButton);
-        }
-    
-        // Create next button
-        const nextButton = document.createElement("button");
-        nextButton.textContent = "Next";
-        nextButton.className = "btn btn-sm btn-secondary";
-        nextButton.disabled = currentPage === totalPages;
-        nextButton.addEventListener("click", () => {
-            if (currentPage < totalPages) {
-                loadQuizzes(currentPage + 1); // Adjust this function call for the section
-            }
-        });
-        paginationContainer.appendChild(nextButton);
     }
 
     // ========== CALENDAR ==========

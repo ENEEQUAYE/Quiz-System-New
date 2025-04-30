@@ -175,12 +175,24 @@ router.post('/:id/submit', [
       });
     }
 
-    // Calculate score
+    // Calculate score and answer details
     let score = 0;
+    let correctAnswers = 0;
+    let incorrectAnswers = 0;
+    let unansweredQuestions = 0;
+
     const answerDetails = quiz.questions.map((question, index) => {
       const selectedOption = answers[index];
       const isCorrect = selectedOption === question.correctAnswer;
-      if (isCorrect) score += question.points;
+
+      if (selectedOption === -1) {
+        unansweredQuestions++;
+      } else if (isCorrect) {
+        correctAnswers++;
+        score += question.points;
+      } else {
+        incorrectAnswers++;
+      }
 
       return {
         questionId: question._id,
@@ -190,11 +202,10 @@ router.post('/:id/submit', [
         isCorrect,
         pointsEarned: isCorrect ? question.points : 0,
         pointsPossible: question.points,
-        timeSpent: 0, // Add logic to calculate time spent per question if needed
-        questionType: question.type || 'multiple-choice',
       };
     });
 
+    const totalQuestions = quiz.questions.length;
     const totalPossible = quiz.questions.reduce((sum, q) => sum + q.points, 0);
     const percentage = Math.round((score / totalPossible) * 100);
 
@@ -210,18 +221,11 @@ router.post('/:id/submit', [
       timeStarted,
       timeCompleted,
       duration: Math.floor((new Date(timeCompleted) - new Date(timeStarted)) / 1000), // Duration in seconds
-      ipAddress: req.ip,
-      deviceInfo: {
-        browser: req.headers['user-agent'], // Simplified example
-        os: 'unknown', // Add logic to detect OS if needed
-        deviceType: 'desktop', // Add logic to detect device type if needed
-      },
-      status: 'completed',
     });
 
     await submission.save();
-    
-    res.status(201).json({ 
+
+    res.status(201).json({
       success: true,
       data: {
         submissionId: submission._id,
@@ -229,16 +233,60 @@ router.post('/:id/submit', [
         totalPossible,
         percentage,
         passed: submission.passed,
-      }
+        totalQuestions,
+        correctAnswers,
+        incorrectAnswers,
+        unansweredQuestions,
+        timeSpent: submission.duration,
+        passingScore: quiz.passingScore,
+      },
     });
   } catch (error) {
     console.error('Error submitting quiz:', error);
     res.status(500).json({ 
       success: false,
-      error: 'Server error while submitting quiz' 
+      error: 'Failed to submit quiz' 
     });
   }
 });
+
+router.get('/submissions/:id', auth, async (req, res) => {
+    try {
+        const submission = await Submission.findById(req.params.id)
+            .populate('quiz', 'title subject questions') // Populate quiz details
+            .lean();
+
+        if (!submission) {
+            return res.status(404).json({
+                success: false,
+                error: 'Submission not found',
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                quiz: submission.quiz,
+                answers: submission.answers,
+                score: submission.score,
+                totalPossible: submission.totalPossible,
+                percentage: submission.percentage,
+                passed: submission.passed,
+                timeStarted: submission.timeStarted,
+                timeCompleted: submission.timeCompleted,
+                duration: submission.duration,
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching submission details:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Server error while fetching submission details',
+        });
+    }
+});
+
+
 
 //Get total individual quiz attempts
 router.get('/:id/attempts', auth, async (req, res) => {

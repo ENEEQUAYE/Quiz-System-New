@@ -87,7 +87,7 @@ router.get("/quizzes", async (req, res) => {
     }
 
     const quizzes = await Quiz.find(filter)
-      .sort({ createdAt: 1 })
+      .sort({ order: 1 })
       .skip(skip)
       .limit(limit)
       .select("title questions timeLimit maxAttempts");
@@ -274,5 +274,42 @@ router.get(
     }
   }
 );
+
+//Get submission details
+router.get('/submissions/:id', auth, async (req, res) => {
+  try {
+    const submission = await Submission.findById(req.params.id)
+      .populate('quiz', 'title subject questions') // Populate quiz details
+      .lean();
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        error: 'Submission not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        quiz: submission.quiz,
+        answers: submission.answers,
+        score: submission.score,
+        totalPossible: submission.totalPossible,
+        percentage: submission.percentage,
+        passed: submission.passed,
+        timeStarted: submission.timeStarted,
+        timeCompleted: submission.timeCompleted,
+        duration: submission.duration,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching submission details:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching submission details',
+    });
+  }
+});
 
 module.exports = router;

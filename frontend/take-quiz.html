@@ -238,6 +238,29 @@
             background-color: #f5f5f5;
             font-style: italic;
         }
+
+        .budge {
+            padding: 0.5em 0.75em;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #fff;
+            border-radius: 0.375rem;
+        }
+        .bg-primary {
+            background-color: #007bff !important;
+        }
+        .bg-success {
+            background-color: #28a745 !important;
+        }
+        .bg-danger {
+            background-color: #dc3545 !important;
+        }
+        .bg-warning {
+            background-color: #ffc107 !important;
+        }
+        .bg-info {
+            background-color: #17a2b8 !important;
+        }
         @media (max-width: 768px) {
             .quiz-header {
                 flex-direction: column;
@@ -320,13 +343,12 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="resultModalLabel">Quiz Results</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" id="close-result-modal-btn" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="result-content">
                     <!-- Results will be displayed here -->
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-primary" id="view-detailed-results-btn">View Detailed Results</button>
                     <button type="button" class="btn btn-success" id="return-dashboard-btn">Return to Dashboard</button>
                 </div>
@@ -373,7 +395,7 @@
                     window.location.href = "index.html";
                 }, 2000);
                 return;
-            }
+            }  
             
             // Get quiz ID from URL
             const urlParams = new URLSearchParams(window.location.search);
@@ -546,7 +568,6 @@
                 const container = document.getElementById("question-container");
                 container.innerHTML = `
                     <div class="question-text">
-                        <span class="badge bg-primary me-2">Question ${index + 1}</span>
                         ${question.questionText}
                     </div>
                     <div class="options-container">
@@ -647,14 +668,12 @@
             document.getElementById("return-dashboard-btn").addEventListener("click", () => {
                 window.location.href = "student-dashboard.html";
             });
-            
-            document.getElementById("view-detailed-results-btn").addEventListener("click", () => {
-                if (resultData) {
-                    window.location.href = `quiz-submission.html?id=${resultData.submissionId}`;
-                } else {
-                    showToast("Result data not available", "danger");
-                }
+
+                 // Redirect modal close button to dashboard
+            document.getElementById("close-result-modal-btn").addEventListener("click", () => {
+                window.location.href = "student-dashboard.html";
             });
+           
             
             function submitQuiz() {
                 clearInterval(timerInterval);
@@ -705,11 +724,17 @@
 
             function showResults(results) {
                 const resultContent = document.getElementById("result-content");
-                
-                // Calculate percentage
-                const percentage = results.percentage;
-                const isPassed = results.passed;
-                
+            
+                // Safely access values with default fallbacks
+                const totalQuestions = results.totalQuestions || 0;
+                const correctAnswers = results.correctAnswers || 0;
+                const incorrectAnswers = results.incorrectAnswers || 0;
+                const unansweredQuestions = results.unansweredQuestions || 0;
+                const timeSpent = results.timeSpent || 0;
+                const passingScore = results.passingScore || 70;
+                const percentage = results.percentage || 0;
+                const isPassed = results.passed || false;
+            
                 // Create result content
                 resultContent.innerHTML = `
                     <div class="result-card">
@@ -746,15 +771,15 @@
                                         <ul class="list-group">
                                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                                 Total Questions
-                                                <span class="bardge bg-primary rounded-pill">${results.totalQuestions}</span>
+                                                <span class="budge bg-primary rounded-pill">${totalQuestions}</span>
                                             </li>
                                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                                 Correct Answers
-                                                <span class="bardge bg-success rounded-pill">${results.correctAnswers}</span>
+                                                <span class="budge bg-success rounded-pill">${correctAnswers}</span>
                                             </li>
                                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                                 Incorrect Answers
-                                                <span class="bardge bg-danger rounded-pill">${results.incorrectAnswers}</span>
+                                                <span class="budge bg-danger rounded-pill">${incorrectAnswers}</span>
                                             </li>
                                         </ul>
                                     </div>
@@ -762,15 +787,15 @@
                                         <ul class="list-group">
                                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                                 Unanswered Questions
-                                                <span class="bardge bg-secondary rounded-pill">${results.unansweredQuestions || 0}</span>
+                                                <span class="budge bg-secondary rounded-pill">${unansweredQuestions}</span>
                                             </li>
                                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                                 Time Spent
-                                                <span class="bardge bg-info rounded-pill">${formatTime(results.timeSpent || 0)}</span>
+                                                <span class="budge bg-info rounded-pill">${formatTime(timeSpent)}</span>
                                             </li>
                                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                                 Passing Score
-                                                <span class="bardge bg-primary rounded-pill">${results.passingScore || 70}%</span>
+                                                <span class="budge bg-primary rounded-pill">${passingScore}%</span>
                                             </li>
                                         </ul>
                                     </div>
@@ -790,10 +815,19 @@
                         Click "View Detailed Results" to see a breakdown of your answers and explanations.
                     </p>
                 `;
-                
+            
+                document.getElementById("view-detailed-results-btn").addEventListener("click", () => {
+                    if (resultData) {
+                        window.location.href = `quiz-detailed-results.html?id=${resultData.submissionId}`;
+                    } else {
+                        showToast("Result data not available", "danger");
+                    }
+                });
+            
                 // Show modal
                 resultModal.show();
             }
+            
             
             function formatTime(seconds) {
                 const hours = Math.floor(seconds / 3600);

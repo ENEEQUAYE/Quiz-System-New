@@ -510,6 +510,8 @@
     }
   }
 
+
+
   async function handleUploadAndExtractQuestions(event) {
       event.preventDefault();
   
@@ -716,6 +718,9 @@
     // Pagination buttons for administrators
     setupPaginationForSection("administrators", loadAdministrators)
 
+    // Pagination buttons for students report
+    setupPaginationForSection("students-report", loadStudentsReport)
+
     // Pagination buttons for messages
     setupPaginationForSection("messages", loadMessages)
   }
@@ -775,7 +780,7 @@ function handleCreateQuiz() {
     const title = document.getElementById("create-quiz-title").value.trim();
     const description = document.getElementById("create-quiz-description").value.trim();
     const order = parseInt(document.getElementById("create-quiz-order").value, 10);
-    const duration = parseInt(document.getElementById("create-quiz-duration").value, 10);
+    const timeLimit = parseInt(document.getElementById("create-quiz-duration").value, 10);
     const passingScore = parseInt(document.getElementById("create-quiz-passing-score").value, 10);
     const category = document.getElementById("create-quiz-category").value.trim();
     const difficulty = document.getElementById("create-quiz-difficulty").value;
@@ -822,7 +827,7 @@ function handleCreateQuiz() {
     });
 
     // Validate quiz data
-    if (!title || !order || !duration || !passingScore || !category || !difficulty || !maxAttempts) {
+    if (!title || !order || !timeLimit || !passingScore || !category || !difficulty || !maxAttempts) {
         showToast("Please fill in all required fields", "warning");
         return;
     }
@@ -831,7 +836,7 @@ function handleCreateQuiz() {
         title,
         description,
         order,
-        duration,
+        timeLimit,
         passingScore,
         category,
         difficulty,
@@ -1469,7 +1474,7 @@ function handleStudentAction(e) {
          // Clear previous content
          quizListContainer.innerHTML = '<p class="text-muted">Loading quizzes...</p>';
  
-         fetch(`${API_URL}/quizzes`, {
+         fetch(`${API_URL}/quizzes?limit=1000`, {
              headers: {
                  Authorization: `Bearer ${token}`,
              },
@@ -1892,42 +1897,72 @@ function handleStudentReportAction(e) {
       })
   }
 
-  function setupPaginationForSection(section, loadFunction) {
+function setupPaginationForSection(section, loadFunction) {
       const prevBtn = document.getElementById(`${section}-prev-page-btn`);
       const nextBtn = document.getElementById(`${section}-next-page-btn`);
-      const pageNum = document.getElementById(`${section}-page-num`);
   
-      if (prevBtn && nextBtn && pageNum) {
+      if (prevBtn && nextBtn) {
           prevBtn.addEventListener("click", () => {
-              const currentPage = parseInt(pageNum.textContent, 10);
+              const currentPage = parseInt(document.getElementById(`${section}-page-num`).textContent, 10);
               if (currentPage > 1) {
-                  loadFunction(currentPage - 1);
+                  loadFunction(currentPage - 1); // Load the previous page
               }
           });
   
           nextBtn.addEventListener("click", () => {
-              const currentPage = parseInt(pageNum.textContent, 10);
-              loadFunction(currentPage + 1);
+              const currentPage = parseInt(document.getElementById(`${section}-page-num`).textContent, 10);
+              const totalPages = parseInt(nextBtn.dataset.totalPages, 10);
+              if (currentPage < totalPages) {
+                  loadFunction(currentPage + 1); // Load the next page
+              }
           });
       }
   }
 
 
   // Update Pagination Controls
-  function updatePagination(section, pagination) {
-      totalPages = pagination.pages || 1;
-      currentPage = pagination.page || 1;
-      
-      const pageNumElement = document.querySelector(`#${section} #page-num`)
-      const prevPageBtn = document.querySelector(`#${section} #prev-page-btn`)
-      const nextPageBtn = document.querySelector(`#${section} #next-page-btn`)
-  
-      if (pageNumElement) pageNumElement.textContent = currentPage
-      if (prevPageBtn) prevPageBtn.disabled = currentPage <= 1
-      if (nextPageBtn) nextPageBtn.disabled = currentPage >= totalPages
+    function updatePagination(section, pagination) {
+        const { page: currentPage, pages: totalPages } = pagination;
+        const prevBtn = document.getElementById(`${section}-prev-page-btn`);
+        const nextBtn = document.getElementById(`${section}-next-page-btn`);
+        const pageNum = document.getElementById(`${section}-page-num`);
+    
+        if (prevBtn && nextBtn && pageNum) {
+            // Update the page number
+            pageNum.textContent = currentPage;
+    
+            // Enable/disable the Previous button
+            prevBtn.disabled = currentPage === 1;
+    
+            // Enable/disable the Next button
+            nextBtn.disabled = currentPage === totalPages;
+    
+            // Store total pages in a data attribute for the Next button
+            nextBtn.dataset.totalPages = totalPages;
+        }
+    }
 
+   function loadSectionData(section, page = 1, search = "") {
+      switch (section) {
+          case "students":
+              loadStudents(page, search);
+              break;
+          case "quizzes":
+              loadQuizzes(page, search);
+              break;
+          case "approvals":
+              loadApprovals(page, search);
+              break;
+          case "administrators":
+              loadAdministrators(page, search);
+              break;
+          case "students-report":
+              loadStudentsReport(page, search);
+              break;
+          default:
+              console.error(`Unknown section: ${section}`);
+      }
   }
-
     function loadRecentActivities(page = 1) {
       const container = document.getElementById('activities-list');
       if (!container) return;

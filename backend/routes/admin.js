@@ -130,7 +130,7 @@ router.post('/quizzes', [
   check('description').optional().trim()
     .isLength({ max: 500 }).withMessage('Description cannot exceed 500 characters'),
   check('order').isInt({ min: 1 }).withMessage('Order must be a positive integer'),
-  check('duration').isInt({ min: 1 }).withMessage('Duration must be at least 1 minute'),
+  check('timeLimit').isInt({ min: 1 }).withMessage('Duration must be at least 1 minute'),
   check('passingScore').isInt({ min: 0, max: 100 }).withMessage('Passing score must be between 0 and 100'),
   check('category').trim().notEmpty().withMessage('Category is required'),
   check('difficulty').isIn(['easy', 'medium', 'hard']).withMessage('Invalid difficulty level'),
@@ -224,7 +224,7 @@ router.put('/quizzes/:id', [
   check('description').optional().trim()
     .isLength({ max: 500 }).withMessage('Description cannot exceed 500 characters'),
   check('order').optional().isInt({ min: 1 }).withMessage('Order must be a positive integer'),
-  check('duration').optional().isInt({ min: 1 }).withMessage('Duration must be at least 1 minute'),
+  check('timeLimit').optional().isInt({ min: 1 }).withMessage('Duration must be at least 1 minute'),
   check('passingScore').optional().isInt({ min: 0, max: 100 }).withMessage('Passing score must be between 0 and 100'),
   check('category').optional().trim().notEmpty().withMessage('Category is required'),
   check('difficulty').optional().isIn(['easy', 'medium', 'hard']).withMessage('Invalid difficulty level'),

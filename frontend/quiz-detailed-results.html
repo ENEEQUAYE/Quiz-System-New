@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Detailed Results</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #042954;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #quiz-details {
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        #quiz-details h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #quiz-details p {
+            margin: 5px 0;
+            font-size: 1rem;
+            color: #555;
+        }
+
+        .question-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .question-container h5 {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .question-container p {
+            font-size: 1rem;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .question-container ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .question-container ul li {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            font-size: 1rem;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        .question-container ul li.text-success {
+            background-color: #e8f5e9;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .question-container ul li.text-danger {
+            background-color: #ffebee;
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .question-container .text-muted {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 10px;
+        }
+
+        .border-success {
+            border: 2px solid #28a745;
+        }
+
+        .border-danger {
+            border: 2px solid #dc3545;
+        }
+
+        .btn {
+            font-size: 1rem;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border: none;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .alert {
+            font-size: 1rem;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .alert-success {
+            background-color: #e8f5e9;
+            color: #28a745;
+        }
+
+        .alert-danger {
+            background-color: #ffebee;
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Quiz Detailed Results</h1>
+        <div id="quiz-details" class="mb-4">
+            <!-- Quiz details will be loaded here -->
+        </div>
+        <div id="questions-container">
+            <!-- Questions and answers will be loaded here -->
+        </div>
+        <div class="text-center mt-4">
+            <button id="return-dashboard-btn" class="btn btn-primary">
+                <i class="fas fa-arrow-left me-2"></i> Return to Dashboard
+            </button>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const API_URL = "https://quiz-system-new.onrender.com/api";
+            const urlParams = new URLSearchParams(window.location.search);
+            const submissionId = urlParams.get("id");
+
+            if (!submissionId) {
+                alert("Invalid submission ID");
+                window.location.href = "student-dashboard.html";
+                return;
+            }
+
+            // Add event listener to the "Return to Dashboard" button
+            document.getElementById("return-dashboard-btn").addEventListener("click", () => {
+                window.location.href = "student-dashboard.html";
+            });
+
+            // Fetch detailed results
+            fetch(`${API_URL}/quizzes/submissions/${submissionId}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (!data.success) {
+                        throw new Error(data.error || "Failed to load detailed results");
+                    }
+
+                    const { quiz, answers } = data.data;
+
+                    // Display quiz details
+                    const quizDetails = document.getElementById("quiz-details");
+                    quizDetails.innerHTML = `
+                        <h2>${quiz.title}</h2>
+                        <p><strong>Subject:</strong> ${quiz.subject || "General"}</p>
+                        <p><strong>Score:</strong> ${data.data.score}/${data.data.totalPossible}</p>
+                        <p><strong>Percentage:</strong> ${data.data.percentage}%</p>
+                        <p><strong>Status:</strong> ${data.data.passed ? "Passed" : "Failed"}</p>
+                    `;
+
+                    // Display questions and answers
+                    const questionsContainer = document.getElementById("questions-container");
+                    quiz.questions.forEach((question, index) => {
+                        const isCorrect = answers[index]?.isCorrect;
+                        const userAnswer = answers[index]?.selectedOption;
+                        const correctAnswer = question.correctAnswer;
+
+                        const questionElement = document.createElement("div");
+                        questionElement.className = `question-container ${
+                            isCorrect ? "border-success" : "border-danger"
+                        }`;
+                        questionElement.innerHTML = `
+                            <h5>Question ${index + 1}</h5>
+                            <p>${question.questionText}</p>
+                            <ul>
+                                ${question.options
+                                    .map(
+                                        (option, optionIndex) => `
+                                    <li class="${
+                                        optionIndex === correctAnswer
+                                            ? "text-success"
+                                            : optionIndex === userAnswer
+                                            ? "text-danger"
+                                            : ""
+                                    }">
+                                        ${String.fromCharCode(65 + optionIndex)}. ${option}
+                                    </li>
+                                `
+                                    )
+                                    .join("")}
+                            </ul>
+                            ${
+                                !isCorrect
+                                    ? `<p class="text-muted"><strong>Explanation:</strong> ${
+                                          question.explanation || "No explanation provided."
+                                      }</p>`
+                                    : ""
+                            }
+                        `;
+                        questionsContainer.appendChild(questionElement);
+                    });
+                })
+                .catch((error) => {
+                    console.error("Error loading detailed results:", error);
+                    alert("Failed to load detailed results. Please try again.");
+                    window.location.href = "student-dashboard.html";
+                });
+        });
+    </script>
+</body>
+</html>
