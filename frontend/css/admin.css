@@ -308,6 +308,55 @@ body {
 .notification-icon.active + .notifications-dropdown {
     display: block;
 }
+
+ /* Header Dropdowns */
+ .header-right .dropdown-menu {
+    margin-top: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.header-right .messages-item,
+.header-right .notification-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+}
+
+.header-right .messages-item:hover,
+.header-right .notification-item:hover {
+    background-color: #f8f9fa;
+}
+
+.header-right .messages-item:last-child,
+.header-right .notification-item:last-child {
+    border-bottom: none;
+}
+
+.header-right .message-sender,
+.header-right .notification-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.header-right .message-preview,
+.header-right .notification-preview {
+    font-size: 0.8125rem;
+    color: #6c757d;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-right .message-time,
+.header-right .notification-time {
+    font-size: 0.75rem;
+    color: #adb5bd;
+}
+
 /*Table badge*/
 .bardge {
     display: inline-block;

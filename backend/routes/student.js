@@ -229,6 +229,24 @@ router.get("/messages", async (req, res) => {
   }
 });
 
+/**
+ * @desc    Get notifications
+ * @route   GET /students/notifications
+ * @access  Private (Student)
+ */
+router.get("/notifications", async (req, res) => {
+  try {
+    const notifications = await Message.find({ recipient: req.user._id, type: "notification" })
+      .sort({ createdAt: -1 }) // Sort by most recent
+      .select("title message createdAt");
+
+    res.json({ success: true, notifications });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch notifications" });
+  }
+});
+
 
 /**
  * @desc    Get a specific quiz

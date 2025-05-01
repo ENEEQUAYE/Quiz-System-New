@@ -29,23 +29,33 @@ document.addEventListener("DOMContentLoaded", () => {
         setupEventListeners();
         initializeCalendar();
         loadDashboardStats();
+        initializeHeaderDropdowns();
     }
 
     function setProfile() {
         if (user) {
+            // Set the profile picture
             const profilePicUrl = user.profilePicture
                 ? user.profilePicture.startsWith("http")
                     ? user.profilePicture
-                    : `http://localhost:5000${user.profilePicture}`
-                : "img/user.jpg";
-
+                    : `${API_URL}${user.profilePicture}`
+                : "img/user.jpg"; // Default profile picture
+    
             document.querySelectorAll(".user-image").forEach((img) => {
                 img.src = profilePicUrl;
             });
-
+    
+            // Set the user name
+            const fullName = `${user.firstName || "Student"} ${user.lastName || ""}`.trim();
             document.querySelectorAll(".user-name").forEach((span) => {
-                span.textContent = user.firstName || "Student";
+                span.textContent = fullName;
             });
+    
+            // Update the dropdown header name
+            const headerUserName = document.getElementById("header-user-name");
+            if (headerUserName) {
+                headerUserName.textContent = fullName;
+            }
         }
     }
 
@@ -171,6 +181,103 @@ document.addEventListener("DOMContentLoaded", () => {
      // Search input handlers
      setupSearchHandlers()
 
+    }
+
+
+     // ========== HEADER DROPDOWN ==========    // Load Messages Dropdown
+     function loadMessagesDropdown() {
+        fetch(`${API_URL}/students/messages`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                const messagesDropdownContent = document.getElementById("messages-dropdown-content");
+                const messageCount = document.getElementById("message-count");
+    
+                messagesDropdownContent.innerHTML = ""; // Clear existing content
+    
+                if (data.success && data.messages.length > 0) {
+                    messageCount.textContent = data.messages.length; // Update message count badge
+                    data.messages.slice(0, 5).forEach((message) => {
+                        const messageItem = document.createElement("div");
+                        messageItem.className = "messages-item";
+                        messageItem.innerHTML = `
+                            <div class="message-sender">${message.senderName}</div>
+                            <div class="message-preview">${message.body.substring(0, 50)}...</div>
+                            <div class="message-time">${new Date(message.createdAt).toLocaleString()}</div>
+                        `;
+                        messagesDropdownContent.appendChild(messageItem);
+                    });
+                } else {
+                    messageCount.textContent = "0"; // No messages
+                    messagesDropdownContent.innerHTML = '<div class="text-center text-muted py-3">No new messages</div>';
+                }
+            })
+            .catch((error) => {
+                console.error("Error loading messages:", error);
+            });
+    }
+    
+    // Load Notifications Dropdown
+    function loadNotificationsDropdown() {
+        fetch(`${API_URL}/students/notifications`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                const notificationsDropdownContent = document.getElementById("notifications-dropdown-content");
+                const notificationCount = document.getElementById("notification-count");
+    
+                notificationsDropdownContent.innerHTML = ""; // Clear existing content
+    
+                if (data.success && data.notifications.length > 0) {
+                    notificationCount.textContent = data.notifications.length; // Update notification count badge
+                    data.notifications.slice(0, 5).forEach((notification) => {
+                        const notificationItem = document.createElement("div");
+                        notificationItem.className = "notification-item";
+                        notificationItem.innerHTML = `
+                            <div class="notification-title">${notification.title}</div>
+                            <div class="notification-preview">${notification.message.substring(0, 50)}...</div>
+                            <div class="notification-time">${new Date(notification.createdAt).toLocaleString()}</div>
+                        `;
+                        notificationsDropdownContent.appendChild(notificationItem);
+                    });
+                } else {
+                    notificationCount.textContent = "0"; // No notifications
+                    notificationsDropdownContent.innerHTML = '<div class="text-center text-muted py-3">No new notifications</div>';
+                }
+            })
+            .catch((error) => {
+                console.error("Error loading notifications:", error);
+            });
+    }
+    
+    // Logout Functionality
+    function setupLogoutButton() {
+        const logoutBtn = document.getElementById("logout-btn");
+        if (logoutBtn) {
+            logoutBtn.addEventListener("click", () => {
+                sessionStorage.removeItem("token");
+                sessionStorage.removeItem("user");
+                sessionStorage.removeItem("activeMenu");
+                window.location.href = "index.html"; // Redirect to login page
+            });
+        }
+    }
+    
+    // Initialize Header Dropdowns
+    function initializeHeaderDropdowns() {
+        loadMessagesDropdown();
+        loadNotificationsDropdown();
+        setupLogoutButton();
+    
+        // Optionally, refresh messages and notifications periodically
+        setInterval(loadMessagesDropdown, 60000); // Refresh messages every 60 seconds
+        setInterval(loadNotificationsDropdown, 60000); // Refresh notifications every 60 seconds
     }
 
 
