@@ -261,9 +261,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const logoutBtn = document.getElementById("logout-btn");
         if (logoutBtn) {
             logoutBtn.addEventListener("click", () => {
-                sessionStorage.removeItem("token");
-                sessionStorage.removeItem("user");
-                sessionStorage.removeItem("activeMenu");
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                localStorage.removeItem("activeMenu");
                 window.location.href = "index.html"; // Redirect to login page
             });
         }
