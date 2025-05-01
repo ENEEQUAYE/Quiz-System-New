@@ -372,6 +372,9 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch((error) => {
                 console.error("Error loading dashboard stats:", error);
             });
+
+        // Load the calendar
+
     }
 
 // ========== QUIZZES ==========
@@ -560,20 +563,21 @@ function loadQuizzes(page = 1, search = "") {
 
     // ========== CALENDAR ==========
     function initializeCalendar() {
-        const calendarEl = document.getElementById("calendar");
+        const calendarEl = document.getElementById("calendar")
         if (calendarEl && window.FullCalendar) {
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: "dayGridMonth",
-                headerToolbar: {
-                    left: "prev,next today",
-                    center: "title",
-                    right: "dayGridMonth,timeGridWeek,timeGridDay",
-                },
-                height: 300,
-            });
-            calendar.render();
+          const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: "dayGridMonth",
+            headerToolbar: {
+              left: "prev,next today",
+              center: "title",
+              right: "dayGridMonth,timeGridWeek,timeGridDay",
+            },
+            height: 300,
+          })
+          calendar.render()
         }
-    }
+      }
+
 
     // Initialize the dashboard
     init();
