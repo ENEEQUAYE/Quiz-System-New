@@ -183,9 +183,6 @@
       const token = localStorage.getItem('token');
       const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-      console.log("Token in localStorage:", token);
-      console.log("User in localStorage:", user);
-
       if (token && user.role) {
         if (user.role === 'admin') {
           console.log("Redirecting to admin-dashboard.html");
