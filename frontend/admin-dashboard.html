@@ -49,54 +49,69 @@
         <div class="main-content flex-grow-1">
             <!-- Header -->
             <header class="header d-flex align-items-center justify-content-between p-3 bg-white border-bottom sticky-top">
-                <button type="button" id="sidebar-collapse" class="submit-btn btn-primary d-lg-none" title="Toggle Sidebar">
+                <button type="button" id="sidebar-collapse" class="btn btn-primary d-lg-none" title="Toggle Sidebar">
                     <i class="fas fa-bars"></i>
                 </button>
                 <div class="welcome">
-                    <span class="welcome-text">Welcome To CESSTIG</span>
+                    <span class="welcome-text">Welcome to CESSTIG</span>
                     <span class="welcome-subtext ms-2">Learning Management System</span>
                 </div>
                 <div class="header-right d-flex align-items-center">
-                    <div class="notification-icon position-relative me-3">
-                        <i class="fas fa-envelope"></i>
-                        <span class="badge blue position-absolute top-0 start-100 translate-middle rounded-pill">0</span>
+                    <!-- Messages Dropdown -->
+                    <div class="dropdown me-3">
+                        <button class="btn btn-light" type="button" id="messagesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-envelope"></i>
+                            <span class="badge bg-danger position-absolute top-0 start-100 translate-middle rounded-pill" id="message-count">0</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-0" aria-labelledby="messagesDropdown" style="width: 300px; max-height: 400px; overflow-y: auto;">
+                            <div class="messages-header p-3 bg-light border-bottom">
+                                <h6 class="mb-0">Messages</h6>
+                            </div>
+                            <div id="messages-dropdown-content" class="p-2">
+                                <div class="text-center text-muted py-3">Loading...</div>
+                            </div>
+                            <div class="dropdown-divider m-0"></div>
+                            <a class="dropdown-item text-center p-2" href="#messages">View All Messages</a>
+                        </div>
                     </div>
-                    <div class="notification-icon position-relative me-3">
-                        <i class="fas fa-bell"></i>
-                        <span class="badge orange position-absolute top-0 start-100 translate-middle rounded-pill">0</span>
+            
+                    <!-- Notifications Dropdown -->
+                    <div class="dropdown me-3">
+                        <button class="btn btn-light" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-bell"></i>
+                            <span class="badge bg-warning position-absolute top-0 start-100 translate-middle rounded-pill" id="notification-count">0</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-0" aria-labelledby="notificationsDropdown" style="width: 300px; max-height: 400px; overflow-y: auto;">
+                            <div class="notifications-header p-3 bg-light border-bottom">
+                                <h6 class="mb-0">Notifications</h6>
+                            </div>
+                            <div id="notifications-dropdown-content" class="p-2">
+                                <div class="text-center text-muted py-3">Loading...</div>
+                            </div>
+                            <div class="dropdown-divider m-0"></div>
+                            <a class="dropdown-item text-center p-2" href="#notifications">View All Notifications</a>
+                        </div>
                     </div>
-                    <div class="user-info d-flex align-items-center">
-                        <img src="img/user.jpg" alt="User" class="img-fluid rounded-circle user-image">
-                        <span class="user-name ms-2 d-none d-md-block">Admin</span>
-                    </div>
-                </div>
-
-
-                <!-- User Dropdown Menu (hidden by default) -->
-                <div class="user-dropdown-menu">
-                    <div class="dropdown-item" data-action="profile">
-                        <i class="fas fa-user"></i> My Profile
-                    </div>
-                    <div class="dropdown-item" data-action="settings">
-                        <i class="fas fa-cog"></i> Settings
-                    </div>
-                    <div class="dropdown-divider"></div>
-                    <div class="dropdown-item" data-action="logout">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </div>
-                </div>
-
-                <!-- Notifications Dropdown (hidden by default) -->
-                <div class="notifications-dropdown">
-                    <div class="dropdown-header">
-                        <span>Notifications</span>
-                        <button class="mark-all-read">Mark all as read</button>
-                    </div>
-                    <div class="notifications-list">
-                        <!-- Notifications will be loaded here -->
-                    </div>
-                    <div class="dropdown-footer">
-                        <a href="#">View all notifications</a>
+            
+                    <!-- User Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-light d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="img/user.jpg" alt="User" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                            <span class="d-none d-md-inline" id="header-user-name">Student</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <h6 class="dropdown-header">User Menu</h6>
+                            <a class="dropdown-item" href="#profile">
+                                <i class="fas fa-user me-2"></i> My Profile
+                            </a>
+                            <a class="dropdown-item" href="#settings">
+                                <i class="fas fa-cog me-2"></i> Settings
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item text-danger" href="#" id="logout-btn">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </div>
                     </div>
                 </div>
             </header>

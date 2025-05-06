@@ -21,6 +21,16 @@
     const mainContent = document.querySelector(".main-content");
     const menuItems = document.querySelectorAll(".menu-item");
     const dashboardContents = document.querySelectorAll(".dashboard-content");
+    const header = {
+        messagesDropdown: document.getElementById("messagesDropdown"),
+        notificationsDropdown: document.getElementById("notificationsDropdown"),
+        userDropdown: document.getElementById("userDropdown"),
+        messageCount: document.getElementById("message-count"),
+        notificationCount: document.getElementById("notification-count"),
+        userName: document.getElementById("header-user-name"),
+        userImage: document.querySelector("#userDropdown img"),
+        logoutBtn: document.getElementById("logout-btn"),
+    };
 
     
   
@@ -35,292 +45,208 @@
       initializeCalendar()
       loadNotificationCounts();
       setInterval(loadNotificationCounts, 300000); // Refresh every 5 minutes
+      initializeHeaderDropdowns();
+      initializeDropdowns();
+      setupHeaderDropdowns()
     }
   
+    function initializeDropdowns() {
+        // Initialize Bootstrap dropdowns
+        const dropdownElements = document.querySelectorAll('.dropdown-toggle');
+        dropdownElements.forEach((dropdown) => {
+            dropdown.addEventListener('click', function (e) {
+                e.preventDefault();
+                const dropdownMenu = this.nextElementSibling;
+                dropdownMenu.classList.toggle('show');
+            });
+        });
+    
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown-menu').forEach((menu) => {
+                    menu.classList.remove('show');
+                });
+            }
+        });
+    }
     function setProfile() {
       if (user) {
-        // Ensure absolute URL for profile picture
-        const profilePicUrl = user.profilePicture
-          ? user.profilePicture.startsWith("http")
-            ? user.profilePicture
-            : `http://localhost:5000${user.profilePicture}`
-          : "img/user.jpg"
+          // Set the profile picture
+          const profilePicUrl = user.profilePicture
+              ? user.profilePicture.startsWith("http")
+                  ? user.profilePicture
+                  : `${API_URL}${user.profilePicture}`
+              : "img/user.jpg"; // Default profile picture
   
-        // Update profile picture in header
-        const userImageElements = document.querySelectorAll(".user-image")
-        userImageElements.forEach((img) => {
-          img.src = profilePicUrl
-        })
+          document.querySelectorAll(".user-image").forEach((img) => {
+              img.src = profilePicUrl;
+          });
   
-        // Update user name in header
-        const userNameElements = document.querySelectorAll(".user-name")
-        userNameElements.forEach((span) => {
-            span.textContent = user.firstName || "Admin";
-        })
+          // Set the user name
+          const fullName = `${user.firstName || "Admin"} ${user.lastName || ""}`.trim();
+          document.querySelectorAll(".user-name").forEach((span) => {
+              span.textContent = fullName;
+          });
+  
+          // Update the dropdown header name
+          const headerUserName = document.getElementById("header-user-name");
+          if (headerUserName) {
+              headerUserName.textContent = fullName;
+          }
       }
-    }
-
-    // Setup dropdown functionality for user and notifications
-  function setupDropdowns() {
-    // User dropdown toggle
-    const userInfo = document.querySelector(".user-info")
-    if (userInfo) {
-      userInfo.addEventListener("click", function (e) {
-        e.preventDefault()
-        e.stopPropagation()
-
-        // Toggle active class
-        this.classList.toggle("active")
-
-        // Close notification dropdown if open
-        const notificationIcons = document.querySelectorAll(".notification-icon")
-        notificationIcons.forEach((icon) => {
-          icon.classList.remove("active")
-        })
-      })
-    }
-
-    // Notification dropdowns toggle
-    const notificationIcons = document.querySelectorAll(".notification-icon")
-    notificationIcons.forEach((icon) => {
-      icon.addEventListener("click", function (e) {
-        e.preventDefault()
-        e.stopPropagation()
-
-        // Close other notification dropdowns
-        notificationIcons.forEach((otherIcon) => {
-          if (otherIcon !== this) {
-            otherIcon.classList.remove("active")
-          }
-        })
-
-        // Toggle active class
-        this.classList.toggle("active")
-
-        // Close user dropdown if open
-        if (userInfo) {
-          userInfo.classList.remove("active")
-        }
-      })
-    })
-
-    // Close dropdowns when clicking outside
-    document.addEventListener("click", (e) => {
-      if (!e.target.closest(".user-info") && !e.target.closest(".notification-icon")) {
-        if (userInfo) {
-          userInfo.classList.remove("active")
-        }
-        notificationIcons.forEach((icon) => {
-          icon.classList.remove("active")
-        })
-      }
-    })
-
-    // Dropdown item actions
-    document.querySelectorAll(".dropdown-item").forEach((item) => {
-      item.addEventListener("click", function (e) {
-        const action = this.dataset.action
-        if (action) {
-          e.preventDefault()
-
-          switch (action) {
-            case "profile":
-              document.querySelector('.menu-item[data-target="#profile"]').click()
-              break
-            case "settings":
-              document.querySelector('.menu-item[data-target="#settings"]').click()
-              break
-            case "logout":
-              logout()
-              break
-          }
-
-          // Close dropdown
-          if (userInfo) {
-            userInfo.classList.remove("active")
-          }
-        }
-      })
-    })
-
-    // Mark all notifications as read
-    const markAllReadBtn = document.querySelector(".mark-all-read")
-    if (markAllReadBtn) {
-      markAllReadBtn.addEventListener("click", (e) => {
-        e.preventDefault()
-        markAllNotificationsAsRead()
-      })
-    }
   }
 
-    function updateTime() {
-        const date = new Date()
-        const options = { weekday: "long", year: "numeric", month: "long", day: "numeric" }
-        const timeOptions = { hour: "numeric", minute: "numeric", second: "numeric", hour12: true }
-    
-        const dateElements = document.querySelectorAll('[id$="current-date"], #current-date')
-        const timeElements = document.querySelectorAll('[id$="current-time"], #current-time')
-    
-        dateElements.forEach((el) => {
-          if (el) el.textContent = date.toLocaleDateString("en-US", options)
-        })
-    
-        timeElements.forEach((el) => {
-          if (el) el.textContent = date.toLocaleTimeString("en-US", timeOptions)
-        })
-      }
 
-      function formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric"
+function updateTime() {
+    const date = new Date()
+    const options = { weekday: "long", year: "numeric", month: "long", day: "numeric" }
+    const timeOptions = { hour: "numeric", minute: "numeric", second: "numeric", hour12: true }
+
+    const dateElements = document.querySelectorAll('[id$="current-date"], #current-date')
+    const timeElements = document.querySelectorAll('[id$="current-time"], #current-time')
+
+    dateElements.forEach((el) => {
+        if (el) el.textContent = date.toLocaleDateString("en-US", options)
+    })
+
+    timeElements.forEach((el) => {
+        if (el) el.textContent = date.toLocaleTimeString("en-US", timeOptions)
+    })
+    }
+
+    function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    });
+}
+
+ 
+
+
+   // ========== HEADER FUNCTIONALITIES ==========
+   function setupHeaderDropdowns() {
+    // Messages dropdown
+    if (elements.header.messagesDropdown) {
+        elements.header.messagesDropdown.addEventListener("click", () => {
+            loadMessagesDropdown();
         });
     }
 
-     // Load Notification Counts
-     function loadNotificationCounts() {
-        fetch(`${API_URL}/notifications/counts`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-          .then((response) => {
-            if (!response.ok) throw new Error("Failed to fetch notifications")
-            return response.json()
-          })
-          .then((data) => {
-            document.querySelector(".fa-envelope + .badge").textContent = data.messages
-            document.querySelector(".fa-bell + .badge").textContent = data.alerts
-    
-            // Load notifications content
-            loadNotifications()
-          })
-          .catch((error) => {
-            console.error("Error loading notifications:", error)
-          })
+    // Notifications dropdown
+    if (elements.header.notificationsDropdown) {
+        elements.header.notificationsDropdown.addEventListener("click", () => {
+            loadNotificationsDropdown();
+        });
     }
 
-      // Load notifications content
-  function loadNotifications() {
-    const notificationsList = document.querySelector(".notifications-list")
-    if (!notificationsList) return
+    // User dropdown
+    setupUserDropdown();
 
+    // Initialize dropdown counts
+    updateHeaderCounts();
+    setInterval(updateHeaderCounts, 300000); // Refresh every 5 minutes
+}
+
+function updateHeaderCounts() {
+    fetch(`${API_URL}/notifications/counts`, {
+        headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (elements.header.messageCount) {
+                elements.header.messageCount.textContent = data.messages || "0";
+            }
+            if (elements.header.notificationCount) {
+                elements.header.notificationCount.textContent = data.notifications || "0";
+            }
+        }
+    })
+    .catch(error => console.error("Error loading counts:", error));
+}
+
+function loadMessagesDropdown() {
+    fetch(`${API_URL}/students/messages`, {
+        headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const messagesContent = document.getElementById("messages-dropdown-content");
+        if (messagesContent) {
+            if (data.success && data.messages?.length > 0) {
+                messagesContent.innerHTML = data.messages.slice(0, 5).map(message => `
+                    <div class="messages-item p-2 border-bottom">
+                        <div class="message-sender fw-bold">${message.senderName}</div>
+                        <div class="message-preview text-truncate">${message.body.substring(0, 50)}</div>
+                        <div class="message-time small text-muted">${formatTimeAgo(message.createdAt)}</div>
+                    </div>
+                `).join("");
+            } else {
+                messagesContent.innerHTML = '<div class="text-center text-muted py-3">No new messages</div>';
+            }
+        }
+    })
+    .catch(error => console.error("Error loading messages:", error));
+}
+
+function loadNotificationsDropdown() {
     fetch(`${API_URL}/notifications`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+        headers: { Authorization: `Bearer ${token}` }
     })
-      .then((response) => {
-        if (!response.ok) throw new Error("Failed to fetch notifications")
-        return response.json()
-      })
-      .then((data) => {
-        const notifications = data.notifications || []
-
-        if (notifications.length === 0) {
-          notificationsList.innerHTML = '<div class="dropdown-item text-center">No notifications</div>'
-          return
+    .then(response => response.json())
+    .then(data => {
+        const notificationsContent = document.getElementById("notifications-dropdown-content");
+        if (notificationsContent) {
+            if (data.success && data.notifications?.length > 0) {
+                notificationsContent.innerHTML = data.notifications.slice(0, 5).map(notification => `
+                    <div class="notification-item p-2 border-bottom ${notification.isRead ? "" : "unread"}">
+                        <div class="notification-title fw-bold">${notification.title}</div>
+                        <div class="notification-preview text-truncate">${notification.message}</div>
+                        <div class="notification-time small text-muted">${formatTimeAgo(notification.createdAt)}</div>
+                    </div>
+                `).join("");
+            } else {
+                notificationsContent.innerHTML = '<div class="text-center text-muted py-3">No new notifications</div>';
+            }
         }
-
-        notificationsList.innerHTML = notifications
-          .map(
-            (notification) => `
-          <div class="dropdown-item ${notification.isRead ? "" : "unread"}" data-id="${notification._id}">
-            <div class="notification-content">
-              <div class="notification-title">${notification.title}</div>
-              <div class="notification-message">${notification.message}</div>
-              <div class="notification-time">${formatTimeAgoHelper(notification.createdAt)}</div>
-            </div>
-            ${notification.isRead ? "" : '<span class="badge bg-primary">New</span>'}
-          </div>
-        `,
-          )
-          .join("")
-
-        // Add click event to mark notification as read
-        notificationsList.querySelectorAll(".dropdown-item[data-id]").forEach((item) => {
-          item.addEventListener("click", function () {
-            const notificationId = this.dataset.id
-            markNotificationAsRead(notificationId)
-          })
-        })
-      })
-      .catch((error) => {
-        console.error("Error loading notifications:", error)
-        notificationsList.innerHTML = '<div class="dropdown-item text-center">Failed to load notifications</div>'
-      })
-  }
-
-  // Mark notification as read
-  function markNotificationAsRead(notificationId) {
-    fetch(`${API_URL}/notifications/${notificationId}/read`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
     })
-      .then((response) => {
-        if (!response.ok) throw new Error("Failed to mark notification as read")
-        return response.json()
-      })
-      .then(() => {
-        // Update UI
-        const notificationItem = document.querySelector(`.dropdown-item[data-id="${notificationId}"]`)
-        if (notificationItem) {
-          notificationItem.classList.remove("unread")
-          const badge = notificationItem.querySelector(".badge")
-          if (badge) badge.remove()
-        }
+    .catch(error => console.error("Error loading notifications:", error));
+}
 
-        // Update notification counts
-        loadNotificationCounts()
-      })
-      .catch((error) => {
-        console.error("Error marking notification as read:", error)
-      })
-  }
+function setupUserDropdown() {
+    // Set user info
+    setProfileInfo();
 
-  // Mark all notifications as read
-  function markAllNotificationsAsRead() {
-    fetch(`${API_URL}/notifications/read-all`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Failed to mark all notifications as read")
-        return response.json()
-      })
-      .then(() => {
-        // Update UI
-        document.querySelectorAll(".dropdown-item.unread").forEach((item) => {
-          item.classList.remove("unread")
-          const badge = item.querySelector(".badge")
-          if (badge) badge.remove()
-        })
+    // Logout functionality
+    if (elements.header.logoutBtn) {
+        elements.header.logoutBtn.addEventListener("click", handleLogout);
+    }
 
-        // Update notification counts
-        loadNotificationCounts()
+    // Profile and settings links
+    document.querySelectorAll('.dropdown-item[href^="#"]').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = item.getAttribute('href');
+            document.querySelector(`.menu-item[data-target="${target}"]`)?.click();
+        });
+    });
+}
 
-        showToast("All notifications marked as read", "success")
-      })
-      .catch((error) => {
-        console.error("Error marking all notifications as read:", error)
-        showToast("Failed to mark all notifications as read", "danger")
-      })
-  }
 
-  function logout() {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    localStorage.removeItem("activeMenu")
-    window.location.href = "index.html"
-  }
+ // Initialize Header Dropdowns
+ function initializeHeaderDropdowns() {
+  loadMessagesDropdown();
+  loadNotificationsDropdown();
+  setupLogoutButton();
+
+  // Optionally, refresh messages and notifications periodically
+  setInterval(loadMessagesDropdown, 60000); // Refresh messages every 60 seconds
+  setInterval(loadNotificationsDropdown, 60000); // Refresh notifications every 60 seconds
+}
 
     // ========== SIDEBAR MANAGEMENT ==========
     function setupSidebar() {
@@ -467,31 +393,7 @@
 
 
 
-    // // Notification icons
-    // const notificationIcons = document.querySelectorAll(".notification-icon");
-    // notificationIcons.forEach((icon) => {
-    //     icon.addEventListener("click", () => {
-    //         const dropdown = icon.querySelector(".dropdown-menu");
-    //         if (dropdown) {
-    //             dropdown.classList.toggle("show");
-    //         }
-    //     });
-    // });
 
-    // // Close dropdowns when clicking outside
-    // document.addEventListener("click", (event) => {
-    //     if (!event.target.closest(".notification-icon")) {
-    //         notificationIcons.forEach((icon) => {
-    //             const dropdown = icon.querySelector(".dropdown-menu");
-    //             if (dropdown) {
-    //                 dropdown.classList.remove("show");
-    //             }
-    //         });
-    //     }
-    // });
-    
-    // User dropdown (would be implemented with a dropdown menu)
-    // document.querySelector('.user-info').addEventListener('click', showUserMenu);
 
 
      // Form submission handlers

@@ -90,7 +90,7 @@ router.get("/quizzes", async (req, res) => {
       .sort({ order: 1 })
       .skip(skip)
       .limit(limit)
-      .select("title questions timeLimit maxAttempts");
+      .select("title description questions timeLimit maxAttempts");
 
     // Fetch the number of attempts for each quiz by the student
     const attempts = await Submission.aggregate([
@@ -107,6 +107,7 @@ router.get("/quizzes", async (req, res) => {
     const quizzesWithDetails = quizzes.map((quiz) => ({
       _id: quiz._id,
       title: quiz.title,
+      description: quiz.description,
       totalQuestions: quiz.questions.length, // Calculate total questions
       duration: quiz.timeLimit, // Use the correct field for duration
       maxAttempts: quiz.maxAttempts || "Unlimited", // Include maxAttempts

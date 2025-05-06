@@ -408,7 +408,7 @@ function loadQuizzes(page = 1, search = "") {
                     const row = document.createElement("tr");
                     row.innerHTML = `
                         <td>${index + 1}</td>
-                        <td>${quiz.title}</td>
+                        <td>${quiz.title}<br><span class="welcome-subtext">${quiz.description}</span></td>
                         <td>${quiz.totalQuestions}</td>
                         <td>${quiz.duration} mins</td>
                         <td>${attemptsLeft}</td>
