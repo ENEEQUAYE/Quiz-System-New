@@ -36,7 +36,7 @@ UserSchema.methods.generateAuthToken = async function() {
   const token = jwt.sign(
     { _id: this._id.toString(), role: this.role, status: this.status },
     process.env.JWT_SECRET,
-    { expiresIn: '1h' } // Token expiration time
+    { expiresIn: '1d' } // Token expiration time
   );
   return token;
 };
