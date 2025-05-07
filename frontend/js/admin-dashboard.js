@@ -596,6 +596,15 @@ function setupUserDropdown() {
       })
     }
 
+    // Search input for student report
+    const searchStudentReportInput = document.getElementById("search-students-report")
+    if (searchStudentReportInput) {
+        searchStudentReportInput.addEventListener("input", (event) => {
+            const searchTerm = event.target.value.trim()
+            loadStudentsReport(1, searchTerm)
+        })
+    }
+
     // Search input for messages
     const searchMessagesInput = document.getElementById("search-messages")
     if (searchMessagesInput) {
