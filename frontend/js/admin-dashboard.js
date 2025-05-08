@@ -412,7 +412,22 @@ function setupUserDropdown() {
     }
   }
 
+function setupFormHandlers() {
+    const createAdminForm = document.getElementById("create-admin-form");
+    if (createAdminForm) {
+        createAdminForm.addEventListener("submit", handleCreateAdminFormSubmit);
+    }
 
+    const addAdminBtn = document.getElementById("add-administrator-btn");
+    if (addAdminBtn) {
+        addAdminBtn.addEventListener("click", () => {
+            // Reset the form when opening the modal
+            if (createAdminForm) {
+                createAdminForm.reset();
+            }
+        });
+    }
+}
 
   async function handleUploadAndExtractQuestions(event) {
       event.preventDefault();
@@ -636,55 +651,62 @@ function setupUserDropdown() {
     setupPaginationForSection("messages", loadMessages)
   }
 
-  function handleCreateAdminFormSubmit(e) {
-    e.preventDefault();
-    console.log("Form submission handler called"); // Debugging
+function handleCreateAdminFormSubmit(e) {
+  e.preventDefault();
 
-    const formData = {
-        firstName: document.getElementById("adminFirstName").value.trim(),
-        lastName: document.getElementById("adminLastName").value.trim(),
-        email: document.getElementById("adminEmail").value.trim(),
-        password: document.getElementById("adminPassword").value,
-        phone: document.getElementById("adminPhone").value.trim() || undefined,
-        position: document.getElementById("adminPosition").value.trim() || undefined
-    };
+  const formData = {
+    firstName: document.getElementById("adminFirstName").value.trim(),
+    lastName: document.getElementById("adminLastName").value.trim(),
+    email: document.getElementById("adminEmail").value.trim(),
+    password: document.getElementById("adminPassword").value,
+    phone: document.getElementById("adminPhone").value.trim() || undefined,
+    position: document.getElementById("adminPosition").value.trim() || undefined,
+  };
 
-    console.log("Form submitted:", formData); // Debugging
+  // Validate required fields
+  if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+    showToast("Please fill in all required fields", "warning");
+    return;
+  }
 
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-        showToast("Please fill in all required fields", "warning");
-        return;
-    }
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(formData.email)) {
+    showToast("Please enter a valid email address", "warning");
+    return;
+  }
 
-    if (formData.password.length < 6) {
-        showToast("Password must be at least 6 characters", "warning");
-        return;
-    }
+  // Validate password length
+  if (formData.password.length < 6) {
+    showToast("Password must be at least 6 characters long", "warning");
+    return;
+  }
 
-    fetch(`${API_URL}/users/admin`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
+  // Send data to the backend
+  fetch(`${API_URL}/users/admin`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(formData),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.success) {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("createAdminModal"));
+        modal.hide();
+        showToast("Administrator created successfully", "success");
+        loadAdministrators();
+        document.getElementById("create-admin-form").reset();
+      } else {
+        throw new Error(data.error || "Failed to create administrator");
+      }
     })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById("createAdminModal"));
-                modal.hide();
-                showToast("Administrator created successfully", "success");
-                loadAdministrators();
-                document.getElementById("create-admin-form").reset();
-            } else {
-                throw new Error(data.error || "Failed to create administrator");
-            }
-        })
-        .catch(error => {
-            console.error(error);
-            showToast(error.message || "Failed to create administrator", "danger");
-        });
+    .catch((error) => {
+      console.error(error);
+      showToast(error.message || "Failed to create administrator", "danger");
+    });
 }
 
 function handleCreateQuiz() {

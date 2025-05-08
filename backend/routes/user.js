@@ -141,14 +141,41 @@ router.post("/admin", auth, async (req, res) => {
   try {
     const { firstName, lastName, email, password, phone, position } = req.body;
 
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "Please provide all required fields",
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email format",
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: "Password must be at least 6 characters long",
+      });
+    }
+
+    // Check if the email already exists
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({
         success: false,
-        error: 'User already exists'
+        error: "User already exists",
       });
     }
 
+    // Create a new admin
     user = new User({
       firstName,
       lastName,
@@ -156,29 +183,29 @@ router.post("/admin", auth, async (req, res) => {
       password,
       phone: phone || undefined,
       position: position || undefined,
-      role: 'admin',
-      status: 'active'
+      role: "admin",
+      status: "active",
     });
 
     await user.save();
 
     res.status(201).json({
       success: true,
-      message: 'Admin created successfully',
+      message: "Admin created successfully",
       user: {
         id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
-        position: user.position
-      }
+        position: user.position,
+      },
     });
   } catch (error) {
-    console.error('Error creating admin:', error);
+    console.error("Error creating admin:", error);
     res.status(500).json({
       success: false,
-      error: 'Server error'
+      error: "Server error",
     });
   }
 });
