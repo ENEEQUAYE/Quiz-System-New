@@ -2061,4 +2061,3 @@ function handleProfilePictureUpload(event) {
     init()
 })
 
-
