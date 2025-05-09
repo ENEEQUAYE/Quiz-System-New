@@ -1,11 +1,12 @@
 //backend/models/ActivityLog.js
 const mongoose = require('mongoose');
+const Notification = require('./Notification'); // Make sure this path is correct
 
 const ActivityLogSchema = new mongoose.Schema({
   action: {
     type: String,
     required: true,
-     enum: [
+    enum: [
       // Admin actions
       'student_approval', 'quiz_created', 'quiz_assigned', 'quiz_deleted', 'quiz_updated', 'notification_sent', 'system_event',
       // Shared actions
@@ -53,6 +54,40 @@ ActivityLogSchema.statics.createLog = async function(action, description, perfor
     targetUser,
     targetQuiz
   });
+};
+
+// Add a static method for logging activity and sending notification
+ActivityLogSchema.statics.logWithNotification = async function({
+  action,
+  description,
+  performedBy,
+  targetUser = null,
+  targetQuiz = null,
+  notificationTitle = "",
+  notificationMessage = "",
+  notificationType = "system"
+}) {
+  const activity = await this.create({
+    action,
+    description,
+    performedBy,
+    targetUser,
+    targetQuiz
+  });
+
+  // Only create notification if targetUser and notificationTitle/message are provided
+  if (targetUser && notificationTitle && notificationMessage) {
+    await Notification.create({
+      user: targetUser,
+      title: notificationTitle,
+      message: notificationMessage,
+      type: notificationType,
+      relatedEntity: targetQuiz,
+      relatedEntityModel: targetQuiz ? "Quiz" : undefined,
+    });
+  }
+
+  return activity;
 };
 
 module.exports = mongoose.model('ActivityLog', ActivityLogSchema);

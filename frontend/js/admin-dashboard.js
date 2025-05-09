@@ -21,15 +21,17 @@
     const mainContent = document.querySelector(".main-content");
     const menuItems = document.querySelectorAll(".menu-item");
     const dashboardContents = document.querySelectorAll(".dashboard-content");
-    const header = {
-        messagesDropdown: document.getElementById("messagesDropdown"),
-        notificationsDropdown: document.getElementById("notificationsDropdown"),
-        userDropdown: document.getElementById("userDropdown"),
-        messageCount: document.getElementById("message-count"),
-        notificationCount: document.getElementById("notification-count"),
-        userName: document.getElementById("header-user-name"),
-        userImage: document.querySelector("#userDropdown img"),
-        logoutBtn: document.getElementById("logout-btn"),
+    const elements = {
+        header: {
+            messagesDropdown: document.getElementById("messagesDropdown"),
+            notificationsDropdown: document.getElementById("notificationsDropdown"),
+            userDropdown: document.getElementById("userDropdown"),
+            messageCount: document.getElementById("message-count"),
+            notificationCount: document.getElementById("notification-count"),
+            userName: document.getElementById("header-user-name"),
+            userImage: document.querySelector("#userDropdown img"),
+            logoutBtn: document.getElementById("logout-btn"),
+        }
     };
 
     
@@ -43,8 +45,9 @@
       setupMenuNavigation()
       setupEventListeners()
       initializeCalendar()
-      loadNotificationCounts();
-      setInterval(loadNotificationCounts, 300000); // Refresh every 5 minutes
+      updateHeaderCounts();
+      setInterval(updateHeaderCounts, 10000); // Refresh every 10 seconds
+    //   setInterval(loadRecentActivities, 10000);
       initializeHeaderDropdowns();
       initializeDropdowns();
       setupHeaderDropdowns()
@@ -152,25 +155,22 @@ function updateTime() {
 }
 
 function updateHeaderCounts() {
-    fetch(`${API_URL}/notifications/counts`, {
+    fetch(`${API_URL}/admin/notifications/count`, {
         headers: { Authorization: `Bearer ${token}` }
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            if (elements.header.messageCount) {
-                elements.header.messageCount.textContent = data.messages || "0";
-            }
             if (elements.header.notificationCount) {
-                elements.header.notificationCount.textContent = data.notifications || "0";
+                elements.header.notificationCount.textContent = data.count || "0";
             }
         }
     })
-    .catch(error => console.error("Error loading counts:", error));
+    .catch(error => console.error("Error loading notification count:", error));
 }
 
 function loadMessagesDropdown() {
-    fetch(`${API_URL}/students/messages`, {
+    fetch(`${API_URL}/admin/messages`, {
         headers: { Authorization: `Bearer ${token}` }
     })
     .then(response => response.json())
@@ -194,7 +194,7 @@ function loadMessagesDropdown() {
 }
 
 function loadNotificationsDropdown() {
-    fetch(`${API_URL}/notifications`, {
+    fetch(`${API_URL}/admin/notifications`, {
         headers: { Authorization: `Bearer ${token}` }
     })
     .then(response => response.json())
@@ -219,11 +219,11 @@ function loadNotificationsDropdown() {
 
 function setupUserDropdown() {
     // Set user info
-    setProfileInfo();
+    setProfile();
 
     // Logout functionality
     if (elements.header.logoutBtn) {
-        elements.header.logoutBtn.addEventListener("click", handleLogout);
+        elements.header.logoutBtn.addEventListener("click", setupLogoutButton);
     }
 
     // Profile and settings links
@@ -248,9 +248,31 @@ function setupUserDropdown() {
   setInterval(loadNotificationsDropdown, 60000); // Refresh notifications every 60 seconds
 }
 
+function setupLogoutButton() {
+    const logoutBtn = document.getElementById("logout-btn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            localStorage.removeItem("activeMenu");
+            window.location.href = "index.html";
+        });
+    }
+}
+
     // ========== SIDEBAR MANAGEMENT ==========
     function setupSidebar() {
-        if (sidebarCollapse && sidebar) {
+        if (sidebarCollapse && sidebar) {        function setupLogoutButton() {
+            const logoutBtn = document.getElementById("logout-btn");
+            if (logoutBtn) {
+                logoutBtn.addEventListener("click", () => {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("user");
+                    localStorage.removeItem("activeMenu");
+                    window.location.href = "index.html";
+                });
+            }
+        }
         sidebarCollapse.addEventListener("click", () => {
             sidebar.classList.toggle("collapsed")
             localStorage.setItem("sidebarState", sidebar.classList.contains("collapsed") ? "collapsed" : "expanded")
@@ -1903,7 +1925,7 @@ function setupPaginationForSection(section, loadFunction) {
       // Show loading state
       container.innerHTML = '<div class="activity-item">Loading...</div>';
   
-      fetchData(`${API_URL}/admin/activities?page=${page}&limit=5`, (data) => {
+      fetchData(`${API_URL}/admin/activities?page=${page}&limit=10`, (data) => {
           if (!data.data || data.data.length === 0) {
               container.innerHTML = '<div class="activity-item">No recent activities</div>';
               return;

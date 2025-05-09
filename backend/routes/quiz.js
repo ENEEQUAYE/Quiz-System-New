@@ -5,6 +5,7 @@ const Quiz = require('../models/Quiz');
 const Submission = require('../models/Submission');
 const { check, validationResult } = require('express-validator');
 const ActivityLog = require('../models/ActivityLog');
+const Notification = require('../models/Notification');
 
 
 // Get all quizzes with pagination, search, and attempts
@@ -243,15 +244,18 @@ router.post('/:id/submit', [
         passingScore: quiz.passingScore,
       },
     });
-    
-    await ActivityLog.create({
+
+    // Log activity and send notification to student
+    await ActivityLog.logWithNotification({
       action: 'quiz_attempted',
       description: `${req.user.firstName} ${req.user.lastName} attempted quiz "${quiz.title}"`,
       performedBy: req.user._id,
-      targetUser: req.user._id, // The student is both performer and target
-      targetQuiz: quiz._id
+      targetUser: req.user._id,
+      targetQuiz: quiz._id,
+      notificationTitle: 'Quiz Attempted',
+      notificationMessage: `You attempted the quiz "${quiz.title}".`
     });
-    
+
   } catch (error) {
     console.error('Error submitting quiz:', error);
     res.status(500).json({ 
@@ -260,6 +264,8 @@ router.post('/:id/submit', [
     });
   }
 });
+
+// ...existing code...
 
 router.get('/submissions/:id', auth, async (req, res) => {
     try {

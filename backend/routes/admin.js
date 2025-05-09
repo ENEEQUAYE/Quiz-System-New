@@ -12,6 +12,7 @@ const User = require('../models/User');
 const Quiz = require('../models/Quiz');
 const Submission = require('../models/Submission');
 const ActivityLog = require('../models/ActivityLog');
+const Notification = require('../models/Notification');
 
 // Configure multer for file uploads
 const upload = multer({ dest: "uploads/" });
@@ -98,12 +99,16 @@ router.patch('/approvals/:id', [
 
     await student.save();
 
-    // Log approval activity
-    await ActivityLog.create({
+    // Log approval activity and send notification
+    await ActivityLog.logWithNotification({
       action: 'student_approval',
       description: `${req.user.firstName} ${req.user.lastName} ${req.body.status === 'active' ? 'approved' : 'rejected'} student, ${student.firstName} ${student.lastName}`,
       performedBy: req.user._id,
-      targetUser: student._id
+      targetUser: student._id,
+      notificationTitle: req.body.status === 'active' ? 'Account Approved' : 'Account Rejected',
+      notificationMessage: req.body.status === 'active'
+        ? 'Your account has been approved. You can now access the system.'
+        : 'Your account registration was rejected. Please contact support for more information.'
     });
 
     res.json({
@@ -157,12 +162,13 @@ router.post('/quizzes', [
 
     await quiz.save();
 
-    // Log quiz creation
-    await ActivityLog.create({
+    // Log quiz creation and send notification to all admins (optional)
+    await ActivityLog.logWithNotification({
       action: 'quiz_created',
       description: `${req.user.firstName} ${req.user.lastName} created quiz "${quiz.title}"`,
       performedBy: req.user._id,
-      targetQuiz: quiz._id
+      targetQuiz: quiz._id,
+      // notificationTitle and notificationMessage can be set if you want to notify someone
     });
 
     res.status(201).json({
@@ -254,7 +260,7 @@ router.put('/quizzes/:id', [
     }
 
     // Log the update activity
-    await ActivityLog.create({
+    await ActivityLog.logWithNotification({
       action: 'quiz_updated',
       description: `${req.user.firstName} ${req.user.lastName} updated quiz "${quiz.title}"`,
       performedBy: req.user._id,
@@ -287,7 +293,7 @@ router.delete('/quizzes/:id', [
     }
 
     // Log the deletion activity
-    await ActivityLog.create({
+    await ActivityLog.logWithNotification({
       action: 'quiz_deleted',
       description: `${req.user.firstName} ${req.user.lastName} deleted quiz "${quiz.title}"`,
       performedBy: req.user._id,
@@ -343,18 +349,21 @@ router.post('/students/:id/quizzes', [
     // Update the `allowedStudents` field in each quiz
     await Quiz.updateMany(
       { _id: { $in: quizzes } },
-      { $addToSet: { allowedStudents: student._id } } // Add the student ID to `allowedStudents`
+      { $addToSet: { allowedStudents: student._id } }
     );
 
-    // Log the assignment for each quiz
-    const activityLogs = newQuizzes.map(quiz => ({
-      action: 'quiz_assigned',
-      description: `${req.user.firstName} ${req.user.lastName} assigned quiz "${quiz.title}" to ${student.firstName} ${student.lastName}`,
-      performedBy: req.user._id,
-      targetUser: student._id,
-      targetQuiz: quiz._id
-    }));
-    await ActivityLog.insertMany(activityLogs);
+    // Log the assignment for each quiz and send notification
+    for (const quiz of newQuizzes) {
+      await ActivityLog.logWithNotification({
+        action: 'quiz_assigned',
+        description: `${req.user.firstName} ${req.user.lastName} assigned quiz "${quiz.title}" to ${student.firstName} ${student.lastName}`,
+        performedBy: req.user._id,
+        targetUser: student._id,
+        targetQuiz: quiz._id,
+        notificationTitle: 'New Quiz Assigned',
+        notificationMessage: `You have been assigned the quiz "${quiz.title}".`
+      });
+    }
 
     res.json({
       success: true,
@@ -369,7 +378,6 @@ router.post('/students/:id/quizzes', [
     });
   }
 });
-
 /**
  * Student Management Endpoints
  */
@@ -818,6 +826,39 @@ router.get('/activities', [
       success: false,
       error: 'Failed to fetch activities'
     });
+  }
+});
+
+// Get Notifications
+router.get("/notifications", async (req, res) => {
+  try {
+    const notifications = await Notification.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(20);
+    res.json({ success: true, notifications: notifications.map(n => n.formatForClient()) });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Failed to fetch notifications" });
+  }
+});
+
+// Get Notification Count
+router.get("/notifications/count", async (req, res) => {
+  try {
+    const count = await Notification.countDocuments({ user: req.user._id, isRead: false });
+    res.json({ success: true, count });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Failed to fetch notification count" });
+  }
+});
+
+// Mark notifications as read
+router.post("/notifications/mark-read", async (req, res) => {
+  try {
+    const { notificationIds } = req.body;
+    await Notification.markAsRead(req.user._id, notificationIds);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Failed to mark notifications as read" });
   }
 });
 

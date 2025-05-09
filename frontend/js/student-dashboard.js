@@ -220,43 +220,88 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.error("Error loading messages:", error);
             });
     }
+
+    function loadNotificationCount() {
+        fetch(`${API_URL}/students/notifications/count`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const notificationCount = document.getElementById("notification-count");
+            if (notificationCount) {
+                notificationCount.textContent = data.success ? (data.count || "0") : "0";
+            }
+        })
+        .catch(() => {
+            const notificationCount = document.getElementById("notification-count");
+            if (notificationCount) notificationCount.textContent = "0";
+        });
+    }
     
     // Load Notifications Dropdown
     function loadNotificationsDropdown() {
         fetch(`${API_URL}/students/notifications`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` }
         })
-            .then((response) => response.json())
-            .then((data) => {
-                const notificationsDropdownContent = document.getElementById("notifications-dropdown-content");
-                const notificationCount = document.getElementById("notification-count");
+        .then((response) => response.json())
+        .then((data) => {
+            const notificationsDropdownContent = document.getElementById("notifications-dropdown-content");
+            notificationsDropdownContent.innerHTML = ""; // Clear existing content
     
-                notificationsDropdownContent.innerHTML = ""; // Clear existing content
-    
-                if (data.success && data.notifications.length > 0) {
-                    notificationCount.textContent = data.notifications.length; // Update notification count badge
-                    data.notifications.slice(0, 5).forEach((notification) => {
-                        const notificationItem = document.createElement("div");
-                        notificationItem.className = "notification-item";
-                        notificationItem.innerHTML = `
-                            <div class="notification-title">${notification.title}</div>
-                            <div class="notification-preview">${notification.message.substring(0, 50)}...</div>
-                            <div class="notification-time">${new Date(notification.createdAt).toLocaleString()}</div>
-                        `;
-                        notificationsDropdownContent.appendChild(notificationItem);
-                    });
-                } else {
-                    notificationCount.textContent = "0"; // No notifications
-                    notificationsDropdownContent.innerHTML = '<div class="text-center text-muted py-3">No new notifications</div>';
-                }
-            })
-            .catch((error) => {
-                console.error("Error loading notifications:", error);
-            });
+            if (data.success && data.notifications.length > 0) {
+                data.notifications.slice(0, 5).forEach((notification) => {
+                    const notificationItem = document.createElement("div");
+                    notificationItem.className = "notification-item";
+                    notificationItem.innerHTML = `
+                        <div class="notification-title">${notification.title}</div>
+                        <div class="notification-preview">${notification.message.substring(0, 50)}...</div>
+                        <div class="notification-time">${new Date(notification.createdAt).toLocaleString()}</div>
+                    `;
+                    notificationsDropdownContent.appendChild(notificationItem);
+                });
+            } else {
+                notificationsDropdownContent.innerHTML = '<div class="text-center text-muted py-3">No new notifications</div>';
+            }
+            // Always update the badge count from the count endpoint
+            loadNotificationCount();
+        })
+        .catch((error) => {
+            const notificationsDropdownContent = document.getElementById("notifications-dropdown-content");
+            notificationsDropdownContent.innerHTML = '<div class="text-center text-muted py-3">Failed to load notifications</div>';
+            loadNotificationCount();
+            console.error("Error loading notifications:", error);
+        });
     }
-    
+
+
+    function markNotificationsAsRead() {
+        fetch(`${API_URL}/students/notifications`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.notifications.length > 0) {
+                const unreadIds = data.notifications
+                    .filter(n => !n.isRead)
+                    .map(n => n._id);
+                if (unreadIds.length > 0) {
+                    fetch(`${API_URL}/students/notifications/mark-read`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ notificationIds: unreadIds })
+                    })
+                    .then(() => {
+                        loadNotificationCount();
+                        loadNotificationsDropdown();
+                    });
+                }
+            }
+        });
+    }
+
     // Logout Functionality
     function setupLogoutButton() {
         const logoutBtn = document.getElementById("logout-btn");
@@ -274,13 +319,22 @@ document.addEventListener("DOMContentLoaded", () => {
     function initializeHeaderDropdowns() {
         loadMessagesDropdown();
         loadNotificationsDropdown();
+        loadNotificationCount();
         setupLogoutButton();
     
         // Optionally, refresh messages and notifications periodically
         setInterval(loadMessagesDropdown, 60000); // Refresh messages every 60 seconds
         setInterval(loadNotificationsDropdown, 60000); // Refresh notifications every 60 seconds
+        setInterval(loadNotificationCount, 60000); // Refresh notification count every 60 seconds
+    
+       // Add event listener to mark notifications as read when the dropdown is clicked
+        const notificationsDropdown = document.getElementById("notificationsDropdown");
+        if (notificationsDropdown) {
+            notificationsDropdown.addEventListener("click", () => {
+                markNotificationsAsRead();
+            });
+        }
     }
-
 
     // ========== PAGINATION HANDLERS ==========
     function setupPaginationHandlers() {

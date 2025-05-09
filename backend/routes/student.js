@@ -8,6 +8,7 @@ const User = require("../models/User");
 const Message = require("../models/Message"); // Assuming you have a Message model
 const { check, validationResult } = require("express-validator");
 const ActivityLog = require('../models/ActivityLog');
+const Notification = require('../models/Notification');
 
 // Apply authentication and role middleware
 router.use(auth);
@@ -274,10 +275,14 @@ router.get("/activities", async (req, res) => {
       data: activities.map(activity => {
         let message = "";
         // Personalize based on action type
-        if (activity.action === "quiz_attempted" && String(activity.performedBy._id) === String(req.user._id)) {
+        if (activity.action === "quiz_attempted" && String(activity.performedBy?._id) === String(req.user._id)) {
           message = `You attempted "${activity.targetQuiz?.title || 'a quiz'}"`;
         } else if (activity.action === "quiz_assigned" && String(activity.targetUser) === String(req.user._id)) {
           message = `You were assigned "${activity.targetQuiz?.title || 'a quiz'}"`;
+        } else if (activity.action === "profile_updated" && String(activity.performedBy?._id) === String(req.user._id)) {
+          message = `You updated your profile`;
+        } else if (activity.action === "submission_graded" && String(activity.targetUser) === String(req.user._id)) {
+          message = `Your submission for "${activity.targetQuiz?.title || 'a quiz'}" was graded`;
         } else {
           // Fallback to original description
           message = activity.description;
@@ -299,10 +304,38 @@ router.get("/activities", async (req, res) => {
   }
 });
 
+// Get notifications
+router.get("/notifications", async (req, res) => {
+  try {
+    const notifications = await Notification.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(20);
+    res.json({ success: true, notifications: notifications.map(n => n.formatForClient()) });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Failed to fetch notifications" });
+  }
+});
 
+// Get notification count
+router.get("/notifications/count", async (req, res) => {
+  try {
+    const count = await Notification.countDocuments({ user: req.user._id, isRead: false });
+    res.json({ success: true, count });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Failed to fetch notification count" });
+  }
+});
 
-
-
+// Mark notifications as read
+router.post("/notifications/mark-read", async (req, res) => {
+  try {
+    const { notificationIds } = req.body;
+    await Notification.markAsRead(req.user._id, notificationIds);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Failed to mark notifications as read" });
+  }
+});
 
 /**
  * @desc    Get a specific quiz
