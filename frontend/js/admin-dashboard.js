@@ -1965,15 +1965,25 @@ function setupPaginationForSection(section, loadFunction) {
 }
 
 function getActivityColor(type) {
-    const colors = {
-        'approval': 'green',
-        'quiz': 'blue',
-        'submission': 'purple',
-        'system': 'cyan',
-        'warning': 'orange',
-        'error': 'red'
-    };
-    return colors[type] || 'purple';
+    switch (type) {
+        case "quiz_attempted":
+            return "activity-success";   // Green
+        case "quiz_assigned":
+            return "activity-info";      // Blue
+        case "quiz_created":
+        case "quiz_updated":
+            return "activity-primary";   // Dark blue
+        case "quiz_deleted":
+            return "activity-danger";    // Red
+        case "profile_updated":
+            return "activity-warning";   // Yellow/Orange
+        case "submission_graded":
+            return "activity-secondary"; // Gray
+        case "notification_sent":
+            return "activity-info";
+        default:
+            return "activity-default";   // Default/neutral
+    }
 }
 
 

@@ -4,6 +4,8 @@ const auth = require('../middleware/authMiddleware');
 const Quiz = require('../models/Quiz');
 const Submission = require('../models/Submission');
 const { check, validationResult } = require('express-validator');
+const ActivityLog = require('../models/ActivityLog');
+
 
 // Get all quizzes with pagination, search, and attempts
 router.get('/', auth, async (req, res) => {
@@ -241,6 +243,15 @@ router.post('/:id/submit', [
         passingScore: quiz.passingScore,
       },
     });
+    
+    await ActivityLog.create({
+      action: 'quiz_attempted',
+      description: `${req.user.firstName} ${req.user.lastName} attempted quiz "${quiz.title}"`,
+      performedBy: req.user._id,
+      targetUser: req.user._id, // The student is both performer and target
+      targetQuiz: quiz._id
+    });
+    
   } catch (error) {
     console.error('Error submitting quiz:', error);
     res.status(500).json({ 

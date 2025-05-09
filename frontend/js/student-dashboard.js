@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
         initializeCalendar();
         loadDashboardStats();
         initializeHeaderDropdowns();
+        loadRecentActivities();
     }
 
     function setProfile() {
@@ -561,6 +562,107 @@ function loadQuizzes(page = 1, search = "") {
             });
     }
 
+
+    // ========== NOTIFICATIONS ==========
+    // function loadNotifications() {
+    //     fetch(`${API_URL}/students/notifications`, {
+    //         headers: {
+    //             Authorization: `Bearer ${token}`,
+    //         },
+    //     })
+    //         .then((response) => response.json())
+    //         .then((data) => {
+    //             if (data.success) {
+    //                 const notificationsList = document.querySelector(".notifications-list");
+    //                 notificationsList.innerHTML = "";
+
+    //                 if (data.notifications.length === 0) {
+    //                     notificationsList.innerHTML = "<p>No notifications yet.</p>";
+    //                 } else {
+    //                     data.notifications.forEach((notification) => {
+    //                         const notificationItem = document.createElement("div");
+    //                         notificationItem.className = "notification-item";
+    //                         notificationItem.innerHTML = `
+    //                             <h5>${notification.title}</h5>
+    //                             <p>${notification.message}</p>
+    //                             <small>${new Date(notification.createdAt).toLocaleString()}</small>
+    //                         `;
+    //                         notificationsList.appendChild(notificationItem);
+    //                     });
+    //                 }
+    //             } else {
+    //                 console.error("Failed to load notifications:", data.error);
+    //             }
+    //         })
+    //         .catch((error) => {
+    //             console.error("Error loading notifications:", error);
+    //         });
+    // }
+
+     
+    // ========== RECENT ACTIVITIES ==========
+    function loadRecentActivities() {
+        const container = document.getElementById('activities-list');
+        if (!container) return;
+    
+        container.innerHTML = '<div class="activity-item">Loading...</div>';
+    
+        fetch(`${API_URL}/students/activities`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success || !data.data.length) {
+                container.innerHTML = '<div class="activity-item">No recent activities</div>';
+                return;
+            }
+            container.innerHTML = data.data.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-indicator ${getActivityColor(activity.type)}"></div>
+                    <div class="activity-details">
+                        <div class="activity-time">${formatTimeAgo(activity.timestamp)}</div>
+                        <div class="activity-text">${activity.message}</div>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(() => {
+            container.innerHTML = '<div class="activity-item error">Failed to load activities</div>';
+        });
+    }
+    
+    // Helper for time ago formatting
+    function formatTimeAgo(date) {
+        const now = new Date();
+        const diff = Math.floor((now - new Date(date)) / 1000);
+        if (diff < 60) return `${diff}s ago`;
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+    }
+
+        function getActivityColor(type) {
+        switch (type) {
+            case "quiz_attempted":
+                return "activity-success";   // Green
+            case "quiz_assigned":
+                return "activity-info";      // Blue
+            case "quiz_created":
+            case "quiz_updated":
+                return "activity-primary";   // Dark blue
+            case "quiz_deleted":
+                return "activity-danger";    // Red
+            case "profile_updated":
+                return "activity-warning";   // Yellow/Orange
+            case "submission_graded":
+                return "activity-secondary"; // Gray
+            case "notification_sent":
+                return "activity-info";
+            default:
+                return "activity-default";   // Default/neutral
+        }
+    }
+    
     // ========== CALENDAR ==========
     function initializeCalendar() {
         const calendarEl = document.getElementById("calendar")

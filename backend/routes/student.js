@@ -7,6 +7,7 @@ const Submission = require("../models/Submission");
 const User = require("../models/User");
 const Message = require("../models/Message"); // Assuming you have a Message model
 const { check, validationResult } = require("express-validator");
+const ActivityLog = require('../models/ActivityLog');
 
 // Apply authentication and role middleware
 router.use(auth);
@@ -247,6 +248,60 @@ router.get("/notifications", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch notifications" });
   }
 });
+
+
+
+/**
+ * @desc    Get recent activities for the logged-in student
+ * @route   GET /students/activities
+ * @access  Private (Student)
+ */
+router.get("/activities", async (req, res) => {
+  try {
+    const activities = await ActivityLog.find({
+      $or: [
+        { targetUser: req.user._id },
+        { performedBy: req.user._id }
+      ]
+    })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate("performedBy", "firstName lastName")
+      .populate("targetQuiz", "title");
+
+    res.json({
+      success: true,
+      data: activities.map(activity => {
+        let message = "";
+        // Personalize based on action type
+        if (activity.action === "quiz_attempted" && String(activity.performedBy._id) === String(req.user._id)) {
+          message = `You attempted "${activity.targetQuiz?.title || 'a quiz'}"`;
+        } else if (activity.action === "quiz_assigned" && String(activity.targetUser) === String(req.user._id)) {
+          message = `You were assigned "${activity.targetQuiz?.title || 'a quiz'}"`;
+        } else {
+          // Fallback to original description
+          message = activity.description;
+        }
+
+        return {
+          id: activity._id,
+          type: activity.action,
+          message,
+          timestamp: activity.createdAt,
+          user: activity.performedBy,
+          quiz: activity.targetQuiz,
+        };
+      }),
+    });
+  } catch (error) {
+    console.error("Error fetching activities:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch activities" });
+  }
+});
+
+
+
+
 
 
 /**
