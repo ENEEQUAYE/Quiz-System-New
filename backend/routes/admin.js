@@ -13,6 +13,7 @@ const Quiz = require('../models/Quiz');
 const Submission = require('../models/Submission');
 const ActivityLog = require('../models/ActivityLog');
 const Notification = require('../models/Notification');
+const Message = require('../models/Message');
 
 // Configure multer for file uploads
 const upload = multer({ dest: "uploads/" });
@@ -859,6 +860,185 @@ router.post("/notifications/mark-read", async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: "Failed to mark notifications as read" });
+  }
+});
+
+/**
+ * @desc    Get messages for the logged-in admin
+ * @route   GET /admin/messages
+ * @access  Private (Admin)
+ */
+router.get("/messages", async (req, res) => {
+  try {
+    const { page = 1, search = "", folder = "inbox" } = req.query;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const filter = { recipient: req.user._id, folder };
+    if (search) {
+      filter.subject = { $regex: search, $options: "i" };
+    }
+
+    const messages = await Message.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .select("subject body senderName isRead createdAt");
+
+    const totalMessages = await Message.countDocuments(filter);
+
+    res.json({
+      success: true,
+      messages,
+      pagination: {
+        page: parseInt(page, 10),
+        totalPages: Math.ceil(totalMessages / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch messages" });
+  }
+});
+
+/**
+ * @desc    Send a message
+ * @route   POST /admin/messages
+ * @access  Private (Admin)
+ */
+router.post(
+  "/messages",
+  [
+    check("recipients").isArray().withMessage("Recipients must be an array"),
+    check("subject").notEmpty().withMessage("Subject is required"),
+    check("body").notEmpty().withMessage("Message body is required"),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { recipients, subject, body } = req.body;
+
+      const messages = recipients.map((recipientId) => ({
+        sender: req.user._id,
+        recipient: recipientId,
+        subject,
+        body,
+        senderName: `${req.user.firstName} ${req.user.lastName}`,
+      }));
+
+      await Message.insertMany(messages);
+
+      res.json({ success: true, message: "Message sent successfully" });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ success: false, error: "Failed to send message" });
+    }
+  }
+);
+
+/**
+ * @desc    Delete messages
+ * @route   DELETE /admin/messages
+ * @access  Private (Admin)
+ */
+router.delete("/messages", async (req, res) => {
+  try {
+    const { messageIds } = req.body;
+
+    if (!Array.isArray(messageIds) || messageIds.length === 0) {
+      return res.status(400).json({ success: false, error: "No message IDs provided" });
+    }
+
+    await Message.deleteMany({ _id: { $in: messageIds }, recipient: req.user._id });
+
+    res.json({ success: true, message: "Messages deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting messages:", error);
+    res.status(500).json({ success: false, error: "Failed to delete messages" });
+  }
+});
+
+/**
+ * @desc    Get a specific message
+ * @route   GET /admin/messages/:id
+ * @access  Private (Admin)
+ */
+router.get("/messages/:id", async (req, res) => {
+  try {
+    const message = await Message.findOne({
+      _id: req.params.id,
+      recipient: req.user._id,
+    }).select("subject body senderName recipients createdAt isRead");
+
+    if (!message) {
+      return res.status(404).json({ success: false, error: "Message not found" });
+    }
+
+    res.json({ success: true, message });
+  } catch (error) {
+    console.error("Error fetching message:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch message" });
+  }
+});
+
+/**
+ * @desc    Mark a message as read
+ * @route   PATCH /admin/messages/:id/read
+ * @access  Private (Admin)
+ */
+router.patch("/messages/:id/read", async (req, res) => {
+  try {
+    const message = await Message.findOneAndUpdate(
+      { _id: req.params.id, recipient: req.user._id },
+      { $set: { isRead: true } },
+      { new: true }
+    );
+
+    if (!message) {
+      return res.status(404).json({ success: false, error: "Message not found" });
+    }
+
+    res.json({ success: true, message: "Message marked as read" });
+  } catch (error) {
+    console.error("Error marking message as read:", error);
+    res.status(500).json({ success: false, error: "Failed to mark message as read" });
+  }
+});
+
+/**
+ * @desc    Get recipients for admin messages
+ * @route   GET /admin/recipients
+ * @access  Private (Admin)
+ */
+router.get("/recipients", async (req, res) => {
+  try {
+    // Fetch all students and admins as potential recipients
+    const students = await User.find({ role: "student" }).select("firstName lastName email");
+    const admins = await User.find({ role: "admin", _id: { $ne: req.user._id } }).select("firstName lastName email");
+
+    const recipients = [
+      ...students.map((student) => ({
+        _id: student._id,
+        name: `${student.firstName} ${student.lastName}`,
+        email: student.email,
+        role: "Student",
+      })),
+      ...admins.map((admin) => ({
+        _id: admin._id,
+        name: `${admin.firstName} ${admin.lastName}`,
+        email: admin.email,
+        role: "Admin",
+      })),
+    ];
+
+    res.json({ success: true, recipients });
+  } catch (error) {
+    console.error("Error fetching recipients:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch recipients" });
   }
 });
 

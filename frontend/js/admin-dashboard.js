@@ -51,6 +51,14 @@
       initializeHeaderDropdowns();
       initializeDropdowns();
       setupHeaderDropdowns()
+        // Initialize messaging
+    setupMessageEventListeners();
+    setupComposeModal();
+        
+        // // Load messages if on messages page
+        // if (document.getElementById("messages").style.display !== "none") {
+        //     loadMessages();
+        // }
     }
   
     function initializeDropdowns() {
@@ -433,6 +441,84 @@ function setupLogoutButton() {
       uploadPicInput.addEventListener("change", handleProfilePictureUpload)
     }
   }
+
+function setupComposeModal() {
+    const composeForm = document.getElementById("compose-message-form");
+    if (!composeForm) return;
+
+    composeForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const recipients = Array.from(document.getElementById("message-recipients").selectedOptions).map(option => option.value);
+        const subject = document.getElementById("message-subject").value.trim();
+        const body = document.getElementById("message-body").value.trim();
+
+        if (!recipients.length || !subject || !body) {
+            showToast("Please fill in all required fields", "warning");
+            return;
+        }
+
+        const formData = {
+            recipients,
+            subject,
+            body,
+        };
+
+        fetch(`${API_URL}/admin/messages`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(formData),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success) {
+                    showToast("Message sent successfully", "success");
+                    const modal = bootstrap.Modal.getInstance(document.getElementById("composeMessageModal"));
+                    modal.hide();
+                    composeForm.reset();
+                } else {
+                    throw new Error(data.error || "Failed to send message");
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+                showToast("Failed to send message", "danger");
+            });
+    });
+
+    // Fetch recipients for the admin
+    const recipientSelect = document.getElementById("message-recipients");
+    if (recipientSelect) {
+        fetch(`${API_URL}/admin/recipients`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success) {
+                    // Populate recipients select with options
+                    data.recipients.forEach((recipient) => {
+                        const option = document.createElement("option");
+                        option.value = recipient._id;
+                        option.textContent = `${recipient.name} (${recipient.role})`;
+                        recipientSelect.appendChild(option);
+                    });
+
+                    // Initialize Select2 for multiple selection
+                    $(recipientSelect).select2({
+                        placeholder: "Select recipients",
+                        allowClear: true,
+                        width: "100%",
+                    });
+                }
+            })
+            .catch(console.error);
+    }
+}
 
 function setupFormHandlers() {
     const createAdminForm = document.getElementById("create-admin-form");
@@ -1820,6 +1906,257 @@ function handleStudentReportAction(e) {
         });
 }
 
+// ========== MESSAGING FUNCTIONS ==========
+function loadMessages(page = 1, search = "", folder = "inbox") {
+    const messagesList = document.getElementById("messages-list");
+    if (!messagesList) return;
+
+    // Show loading state
+    messagesList.innerHTML = '<div class="text-center py-5"><div class="spinner-border" role="status"></div></div>';
+
+    fetch(`${API_URL}/${user.role === 'admin' ? 'admin' : 'students'}/messages?page=${page}&search=${search}&folder=${folder}`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            messagesList.innerHTML = "";
+
+            if (data.success && data.messages.length > 0) {
+                data.messages.forEach((message) => {
+                    const messageItem = document.createElement("div");
+                    messageItem.className = `message-item ${message.isRead ? '' : 'unread'}`;
+                    messageItem.dataset.id = message._id;
+                    messageItem.innerHTML = `
+                        <div class="form-check message-item-checkbox">
+                            <input class="form-check-input message-checkbox" type="checkbox" data-id="${message._id}">
+                        </div>
+                        <div class="message-item-sender">${message.senderName}</div>
+                        <div class="message-item-subject">${message.subject}</div>
+                        <div class="message-item-preview">${message.body.substring(0, 50)}...</div>
+                        <div class="message-item-time">${formatTimeAgo(message.createdAt)}</div>
+                    `;
+                    messagesList.appendChild(messageItem);
+
+                    // Add click event to view message
+                    messageItem.addEventListener("click", (e) => {
+                        if (!e.target.classList.contains('form-check-input')) {
+                            viewMessage(message._id);
+                        }
+                    });
+                });
+
+                // Update pagination
+                updatePagination("messages", data.pagination);
+            } else {
+                messagesList.innerHTML = `
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-envelope fa-3x mb-3"></i>
+                        <p>No messages found</p>
+                    </div>
+                `;
+            }
+        })
+        .catch((error) => {
+            console.error("Error loading messages:", error);
+            messagesList.innerHTML = `
+                <div class="text-center py-5 text-danger">
+                    <i class="fas fa-exclamation-circle fa-3x mb-3"></i>
+                    <p>Failed to load messages</p>
+                </div>
+            `;
+        });
+}
+
+function viewMessage(messageId) {
+    const messagesListContainer = document.getElementById("messages-list-container");
+    const messageViewContainer = document.getElementById("message-view-container");
+    const messageViewContent = document.getElementById("message-view-content");
+
+    // Show loading state
+    messageViewContent.innerHTML = '<div class="text-center py-5"><div class="spinner-border" role="status"></div></div>';
+
+    // Switch to message view
+    messagesListContainer.style.display = "none";
+    messageViewContainer.style.display = "block";
+
+    // Fetch message details
+    fetch(`${API_URL}/${user.role === 'admin' ? 'admin' : 'students'}/messages/${messageId}`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.success) {
+                const message = data.message;
+                messageViewContent.innerHTML = `
+                    <div class="message-header">
+                        <h4 class="message-subject">${message.subject}</h4>
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <span class="message-sender">From: ${message.senderName}</span>
+                                <span class="message-recipients">To: ${message.recipients.map(r => r.name).join(', ')}</span>
+                            </div>
+                            <div class="message-date">${new Date(message.createdAt).toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div class="message-body">${message.body}</div>
+                `;
+
+                // Mark as read if not already read
+                if (!message.isRead) {
+                    fetch(`${API_URL}/${user.role === 'admin' ? 'admin' : 'students'}/messages/${messageId}/read`, {
+                        method: "PATCH",
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    })
+                        .then(() => {
+                            // Update the message count in the header
+                            updateHeaderCounts();
+                        })
+                        .catch(console.error);
+                }
+            } else {
+                messageViewContent.innerHTML = `
+                    <div class="text-center py-5 text-danger">
+                        <i class="fas fa-exclamation-circle fa-3x mb-3"></i>
+                        <p>Failed to load message</p>
+                    </div>
+                `;
+            }
+        })
+        .catch((error) => {
+            console.error("Error loading message:", error);
+            messageViewContent.innerHTML = `
+                <div class="text-center py-5 text-danger">
+                    <i class="fas fa-exclamation-circle fa-3x mb-3"></i>
+                    <p>Failed to load message</p>
+                </div>
+            `;
+        });
+}
+
+function setupMessageEventListeners() {
+    // Back to list button
+    document.getElementById("back-to-list")?.addEventListener("click", () => {
+        document.getElementById("messages-list-container").style.display = "block";
+        document.getElementById("message-view-container").style.display = "none";
+    });
+
+    // Reply button
+    document.getElementById("reply-message")?.addEventListener("click", () => {
+        const messageId = document.querySelector(".message-item.selected")?.dataset.id;
+        if (messageId) {
+            // Fetch message details to pre-fill the reply form
+            fetch(`${API_URL}/${user.role === 'admin' ? 'admin' : 'students'}/messages/${messageId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.success) {
+                        const message = data.message;
+                        const composeModal = new bootstrap.Modal(document.getElementById("composeMessageModal"));
+                        
+                        // Set up reply form
+                        document.getElementById("message-subject").value = `Re: ${message.subject}`;
+                        document.getElementById("message-recipients").value = message.senderId;
+                        document.getElementById("message-body").value = `\n\n--- Original Message ---\nFrom: ${message.senderName}\nDate: ${new Date(message.createdAt).toLocaleString()}\n\n${message.body}`;
+                        
+                        composeModal.show();
+                    }
+                });
+        }
+    });
+
+    // Folder navigation
+    document.querySelectorAll(".messages-folders .folder").forEach((folder) => {
+        folder.addEventListener("click", () => {
+            document.querySelector(".messages-folders .folder.active").classList.remove("active");
+            folder.classList.add("active");
+            loadMessages(1, "", folder.dataset.folder);
+        });
+    });
+
+    // Search messages
+    const searchInput = document.getElementById("search-messages");
+    if (searchInput) {
+        searchInput.addEventListener("input", debounce(() => {
+            const searchTerm = searchInput.value.trim();
+            const activeFolder = document.querySelector(".messages-folders .folder.active").dataset.folder;
+            loadMessages(1, searchTerm, activeFolder);
+        }, 300));
+    }
+
+    // Refresh messages
+    document.getElementById("refresh-messages")?.addEventListener("click", () => {
+        const searchTerm = document.getElementById("search-messages").value.trim();
+        const activeFolder = document.querySelector(".messages-folders .folder.active").dataset.folder;
+        loadMessages(1, searchTerm, activeFolder);
+    });
+
+    // Select all messages
+    document.getElementById("select-all-messages")?.addEventListener("change", (e) => {
+        document.querySelectorAll(".message-checkbox").forEach((checkbox) => {
+            checkbox.checked = e.target.checked;
+        });
+    });
+
+    // Delete selected messages
+    document.getElementById("delete-messages")?.addEventListener("click", () => {
+        const selectedMessages = Array.from(document.querySelectorAll(".message-checkbox:checked")).map(
+            (checkbox) => checkbox.dataset.id
+        );
+
+        if (selectedMessages.length === 0) {
+            showToast("Please select at least one message to delete", "warning");
+            return;
+        }
+
+        if (confirm(`Are you sure you want to delete ${selectedMessages.length} message(s)?`)) {
+            fetch(`${API_URL}/${user.role === 'admin' ? 'admin' : 'students'}/messages`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ messageIds: selectedMessages }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.success) {
+                        showToast("Messages deleted successfully", "success");
+                        const searchTerm = document.getElementById("search-messages").value.trim();
+                        const activeFolder = document.querySelector(".messages-folders .folder.active").dataset.folder;
+                        loadMessages(1, searchTerm, activeFolder);
+                    } else {
+                        throw new Error(data.error || "Failed to delete messages");
+                    }
+                })
+                .catch((error) => {
+                    console.error(error);
+                    showToast("Failed to delete messages", "danger");
+                });
+        }
+    });
+}
+
+// Debounce function for search input
+function debounce(func, wait) {
+    let timeout;
+    return function() {
+        const context = this, args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            func.apply(context, args);
+        }, wait);
+    };
+}
+
   // ========== HELPER FUNCTIONS ==========
   function fetchData(url, successCallback, errorCallback) {
     fetch(url, {
@@ -2009,19 +2346,6 @@ function getActivityColor(type) {
 }
 
 
-function showMessages() {
-    document.querySelector('.menu-item[data-target="#messages"]').click();
-}
-
-function showAlerts() {
-    // Implementation would show alerts dropdown
-    console.log('Show alerts dropdown');
-}
-
-function showUserMenu() {
-    // Implementation would show user menu dropdown
-    console.log('Show user menu');
-}
 
   function showToast(message, type = "info") {
     const toastContainer = document.getElementById("toast-container") || document.body;

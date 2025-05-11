@@ -10,6 +10,7 @@ const { check, validationResult } = require("express-validator");
 const ActivityLog = require('../models/ActivityLog');
 const Notification = require('../models/Notification');
 
+
 // Apply authentication and role middleware
 router.use(auth);
 router.use(role("student"));
@@ -215,21 +216,162 @@ router.get("/profile", async (req, res) => {
 });
 
 /**
- * @desc    Get messages
+ * @desc    Get messages for the logged-in student
  * @route   GET /students/messages
  * @access  Private (Student)
  */
 router.get("/messages", async (req, res) => {
-  try {
-    const messages = await Message.find({ recipient: req.user._id })
-      .sort({ createdAt: -1 })
-      .select("subject body senderName createdAt");
+    try {
+        const { page = 1, search = "", folder = "inbox" } = req.query;
+        const limit = 10;
+        const skip = (page - 1) * limit;
 
-    res.json({ success: true, messages });
-  } catch (error) {
-    console.error("Error fetching messages:", error);
-    res.status(500).json({ success: false, error: "Failed to fetch messages" });
+        const filter = { recipient: req.user._id };
+        if (search) {
+            filter.subject = { $regex: search, $options: "i" };
+        }
+
+        const messages = await Message.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const total = await Message.countDocuments(filter);
+
+        res.json({
+            success: true,
+            messages,
+            pagination: {
+                page: parseInt(page, 10),
+                totalPages: Math.ceil(total / limit),
+            },
+        });
+    } catch (error) {
+        console.error("Error fetching messages:", error);
+        res.status(500).json({ success: false, error: "Failed to fetch messages" });
+    }
+});
+
+/**
+ * @desc    Send a message
+ * @route   POST /students/messages
+ * @access  Private (Student)
+ */
+router.post("/messages",
+  [
+    check("recipients").isArray().withMessage("Recipients must be an array"),
+    check("subject").notEmpty().withMessage("Subject is required"),
+    check("body").notEmpty().withMessage("Message body is required"),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { recipients, subject, body } = req.body;
+
+      const messages = recipients.map((recipientId) => ({
+        sender: req.user._id,
+        recipient: recipientId,
+        subject,
+        body,
+        senderName: `${req.user.firstName} ${req.user.lastName}`,
+      }));
+
+      await Message.insertMany(messages);
+
+      res.json({ success: true, message: "Message sent successfully" });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ success: false, error: "Failed to send message" });
+    }
   }
+);
+
+/**
+ * @desc    Get a specific message
+ * @route   GET /students/messages/:id
+ * @access  Private (Student)
+ */
+router.get("/messages/:id", async (req, res) => {
+  try {
+    const message = await Message.findOne({
+      _id: req.params.id,
+      recipient: req.user._id,
+    }).select("subject body senderName recipients createdAt isRead");
+
+    if (!message) {
+      return res.status(404).json({ success: false, error: "Message not found" });
+    }
+
+    res.json({ success: true, message });
+  } catch (error) {
+    console.error("Error fetching message:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch message" });
+  }
+});
+
+/**
+ * @desc    Mark a message as read
+ * @route   PATCH /students/messages/:id/read
+ * @access  Private (Student)
+ */
+router.patch("/messages/:id/read", async (req, res) => {
+    try {
+        const message = await Message.findOneAndUpdate(
+            { _id: req.params.id, recipient: req.user._id },
+            { isRead: true },
+            { new: true }
+        );
+
+        if (!message) {
+            return res.status(404).json({ success: false, error: "Message not found" });
+        }
+
+        res.json({ success: true, message });
+    } catch (error) {
+        console.error("Error marking message as read:", error);
+        res.status(500).json({ success: false, error: "Failed to mark message as read" });
+    }
+});
+
+/**
+ * @desc    Delete messages
+ * @route   DELETE /students/messages
+ * @access  Private (Student)
+ */
+router.delete("/messages", async (req, res) => {
+  try {
+    const { messageIds } = req.body;
+
+    if (!Array.isArray(messageIds) || messageIds.length === 0) {
+      return res.status(400).json({ success: false, error: "No message IDs provided" });
+    }
+
+    await Message.deleteMany({ _id: { $in: messageIds }, recipient: req.user._id });
+
+    res.json({ success: true, message: "Messages deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting messages:", error);
+    res.status(500).json({ success: false, error: "Failed to delete messages" });
+  }
+});
+
+/**
+ * @desc    Get recipients for messages
+ * @route   GET /students/recipients
+ * @access  Private (Student)
+ */
+router.get("/recipients", async (req, res) => {
+    try {
+        const recipients = await User.find({ role: "admin" }).select("_id name");
+        res.json({ success: true, recipients });
+    } catch (error) {
+        console.error("Error fetching recipients:", error);
+        res.status(500).json({ success: false, error: "Failed to fetch recipients" });
+    }
 });
 
 /**
