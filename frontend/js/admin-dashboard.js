@@ -2277,6 +2277,7 @@ function setupPaginationForSection(section, loadFunction) {
                       <div class="activity-text">${activity.message}</div>
                   </div>
               </div>
+              <div class="dropdown-divider m-0"></div>
           `).join('');
       }, (error) => {
           console.error("Failed to load recent activities:", error);

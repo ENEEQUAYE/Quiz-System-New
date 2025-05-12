@@ -524,7 +524,7 @@ body {
     margin-right: 12px;
 }
 
-.activity-indicator.purple {
+/* .activity-indicator.purple {
     background-color: #01c52c;
 }
 
@@ -534,7 +534,7 @@ body {
 
 .activity-indicator.green {
     background-color: #4caf50;
-} 
+}  */
 
 .activity-time {
     font-size: 14px;

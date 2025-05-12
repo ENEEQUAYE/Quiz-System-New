@@ -1045,13 +1045,18 @@ router.get("/recipients", async (req, res) => {
 // Function to extract questions from text
 function extractQuestionsFromText(text) {
     const questions = [];
-    const questionRegex = /\d+\.\s+(.+?)\n\s*a\.\s+(.+?)\n\s*b\.\s+(.+?)\n\s*c\.\s+(.+?)\n\s*d\.\s+(.+?)(?=\n\d+\.|\n*$)/gs;
+    const questionRegex = /\d+\.\s+(.+?)\n\s*[A|a]\.\s+(.+?)\n\s*[B|b]\.\s+(.+?)\n\s*[C|c]\.\s+(.+?)\n\s*[D|d]\.\s+(.+?)(?=\n\d+\.|\n*$)/gs;
 
     let match;
     while ((match = questionRegex.exec(text)) !== null) {
         questions.push({
-            questionText: match[1].trim(), // Extracted question text without the number
-            options: [match[2].trim(), match[3].trim(), match[4].trim(), match[5].trim()],
+            questionText: match[1].trim(), // Extracted question text
+            options: [
+                match[2].trim(), // Option A
+                match[3].trim(), // Option B
+                match[4].trim(), // Option C
+                match[5].trim()  // Option D
+            ],
         });
     }
     return questions;

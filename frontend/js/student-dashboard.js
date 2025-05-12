@@ -195,7 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
      // ========== HEADER DROPDOWN ==========    // Load Messages Dropdown
      function loadMessagesDropdown() {
-        fetch(`${API_URL}/students/messages`, {
+        fetch(`${API_URL}/students/header-messages`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
