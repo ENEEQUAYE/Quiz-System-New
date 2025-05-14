@@ -31,10 +31,10 @@ router.get("/dashboard", async (req, res) => {
     const completedQuizzes = await Submission.aggregate([
       { $match: { student: studentId } }, // Filter submissions by student
       { $group: { _id: "$quiz" } }, // Group by quiz ID
-      { $count: "uniqueQuizzes" } // Count unique quizzes
     ]);
 
-    const completedQuizzesCount = completedQuizzes[0]?.uniqueQuizzes || 0;
+    // Extract completed quiz IDs
+    const completedQuizIds = completedQuizzes.map((quiz) => quiz._id);
 
     // Calculate the average score
     const averageScore = await Submission.aggregate([
@@ -47,15 +47,19 @@ router.get("/dashboard", async (req, res) => {
       ? parseFloat(averageScore[0].avgScore.toFixed(2))
       : 0;
 
-    // Fetch the next quiz
-    const nextQuiz = await Quiz.findOne({ isActive: true })
-      .sort({ startDate: 1 })
-      .select("title startDate");
+    // Fetch the next unattempted quiz assigned to the student
+    const nextQuiz = await Quiz.findOne({
+      _id: { $nin: completedQuizIds }, // Exclude completed quizzes
+      allowedStudents: studentId, // Ensure the quiz is assigned to the student
+      isActive: true, // Only active quizzes
+    })
+      .sort({ order: 1 }) // Sort by order
+      .select("title order");
 
     res.json({
       success: true,
       availableQuizzes,
-      completedQuizzes: completedQuizzesCount,
+      completedQuizzes: completedQuizzes.length,
       averageScore: formattedAverageScore || 0,
       nextQuiz: nextQuiz ? nextQuiz.title : "None",
     });
@@ -64,8 +68,6 @@ router.get("/dashboard", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch dashboard stats" });
   }
 });
-
-
 
 /**
  * @desc    Get assigned quizzes for a student
@@ -356,6 +358,23 @@ router.delete("/messages", async (req, res) => {
   } catch (error) {
     console.error("Error deleting messages:", error);
     res.status(500).json({ success: false, error: "Failed to delete messages" });
+  }
+});
+
+
+router.get("/header-messages", async (req, res) => {
+  try {
+    const messages = await Message.find({ 
+      recipient: req.user._id,
+      isRead: false 
+    })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .select("subject body senderName createdAt");
+
+    res.json({ success: true, messages });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Failed to fetch messages" });
   }
 });
 

@@ -933,79 +933,7 @@ function loadQuizzes(page = 1, search = "") {
         document.getElementById("profile-phone").textContent = `Phone: ${user.phone || "N/A"}`;
     }
 
-    function loadMessages() {
-        fetch(`${API_URL}/students/messages`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.success) {
-                    const messagesList = document.querySelector(".messages-list");
-                    messagesList.innerHTML = "";
 
-                    if (data.messages.length === 0) {
-                        messagesList.innerHTML = "<p>No messages yet.</p>";
-                    } else {
-                        data.messages.forEach((message) => {
-                            const messageItem = document.createElement("div");
-                            messageItem.className = "message-item";
-                            messageItem.innerHTML = `
-                                <h5>${message.subject}</h5>
-                                <p>${message.body}</p>
-                                <small>From: ${message.senderName}</small>
-                            `;
-                            messagesList.appendChild(messageItem);
-                        });
-                    }
-                } else {
-                    console.error("Failed to load messages:", data.error);
-                }
-            })
-            .catch((error) => {
-                console.error("Error loading messages:", error);
-            });
-    }
-
-
-    // ========== NOTIFICATIONS ==========
-    // function loadNotifications() {
-    //     fetch(`${API_URL}/students/notifications`, {
-    //         headers: {
-    //             Authorization: `Bearer ${token}`,
-    //         },
-    //     })
-    //         .then((response) => response.json())
-    //         .then((data) => {
-    //             if (data.success) {
-    //                 const notificationsList = document.querySelector(".notifications-list");
-    //                 notificationsList.innerHTML = "";
-
-    //                 if (data.notifications.length === 0) {
-    //                     notificationsList.innerHTML = "<p>No notifications yet.</p>";
-    //                 } else {
-    //                     data.notifications.forEach((notification) => {
-    //                         const notificationItem = document.createElement("div");
-    //                         notificationItem.className = "notification-item";
-    //                         notificationItem.innerHTML = `
-    //                             <h5>${notification.title}</h5>
-    //                             <p>${notification.message}</p>
-    //                             <small>${new Date(notification.createdAt).toLocaleString()}</small>
-    //                         `;
-    //                         notificationsList.appendChild(notificationItem);
-    //                     });
-    //                 }
-    //             } else {
-    //                 console.error("Failed to load notifications:", data.error);
-    //             }
-    //         })
-    //         .catch((error) => {
-    //             console.error("Error loading notifications:", error);
-    //         });
-    // }
-
-     
     // ========== RECENT ACTIVITIES ==========
     function loadRecentActivities() {
         const container = document.getElementById('activities-list');

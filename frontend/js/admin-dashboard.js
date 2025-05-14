@@ -2255,6 +2255,7 @@ function setupPaginationForSection(section, loadFunction) {
               console.error(`Unknown section: ${section}`);
       }
   }
+  
     function loadRecentActivities(page = 1) {
       const container = document.getElementById('activities-list');
       if (!container) return;
@@ -2300,7 +2301,8 @@ function setupPaginationForSection(section, loadFunction) {
       calendar.render()
     }
   }
-  function formatTimeAgo(timestamp) {
+
+function formatTimeAgo(timestamp) {
     const now = new Date();
     const date = new Date(timestamp);
     const seconds = Math.floor((now - date) / 1000);
