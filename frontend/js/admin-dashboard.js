@@ -47,7 +47,7 @@
       initializeCalendar()
       updateHeaderCounts();
       setInterval(updateHeaderCounts, 10000); // Refresh every 10 seconds
-    //   setInterval(loadRecentActivities, 10000);
+      setInterval(loadRecentActivities, 60000);
       initializeHeaderDropdowns();
       initializeDropdowns();
       setupHeaderDropdowns()
@@ -1148,6 +1148,9 @@ function loadQuizzes(page = 1, search = "") {
                     <button class="btn btn-sm btn-danger ms-2" data-id="${quiz._id}" data-action="delete">
                         <i class="fas fa-trash"></i>
                     </button>
+                    <button class="btn btn-sm btn-success ms-2" data-id="${quiz._id}" data-action="assign-all">
+                        <i class="fas fa-users"></i> Assign to All
+                    </button>
                 </td>
             `;
             quizzesTableBody.appendChild(row);
@@ -1701,7 +1704,30 @@ function handleStudentAction(e) {
           </div>
         `
         })
+    } else if (action === "assign-all") {
+        if (confirm("Are you sure you want to assign this quiz to all students?")) {
+            fetch(`${API_URL}/admin/quizzes/${quizId}/assign-all`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success) {
+                    showToast("Quiz assigned to all students successfully", "success");
+                } else {
+                    throw new Error(data.error || "Failed to assign quiz to all students");
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+                showToast("Failed to assign quiz to all students", "danger");
+            });
+        }
     }
+
   }
 
   function addQuestionForEdit(questionData) {
@@ -2158,7 +2184,7 @@ function debounce(func, wait) {
 }
 
   // ========== HELPER FUNCTIONS ==========
-  function fetchData(url, successCallback, errorCallback) {
+function fetchData(url, successCallback, errorCallback) {
     fetch(url, {
       method: "GET",
       headers: {
@@ -2167,6 +2193,14 @@ function debounce(func, wait) {
       },
     })
       .then((response) => {
+        if (response.status === 401) {
+          // Unauthorized, redirect to login
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("activeMenu");
+          window.location.href = "index.html";
+          return Promise.reject(new Error("Unauthorized"));
+        }
         if (!response.ok) {
           throw new Error("Network response was not ok")
         }
@@ -2180,6 +2214,7 @@ function debounce(func, wait) {
         }
       })
       .catch((error) => {
+        if (error.message === "Unauthorized") return;
         console.error("Fetch error:", error)
         if (errorCallback) {
           errorCallback(error)

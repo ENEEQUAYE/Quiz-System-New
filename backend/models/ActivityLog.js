@@ -8,7 +8,7 @@ const ActivityLogSchema = new mongoose.Schema({
     required: true,
     enum: [
       // Admin actions
-      'student_approval', 'quiz_created', 'quiz_assigned', 'quiz_deleted', 'quiz_updated', 'notification_sent', 'system_event',
+      'student_approval', 'quiz_created', 'quiz_assigned', 'quiz_deleted', 'quiz_updated', 'notification_sent', 'system_event', 'quiz_assigned_all',
       // Shared actions
       'user_login', 'submission_created', 'submission_graded',
       // Student actions

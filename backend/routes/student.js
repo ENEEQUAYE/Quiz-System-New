@@ -440,6 +440,8 @@ router.get("/activities", async (req, res) => {
           message = `You attempted "${activity.targetQuiz?.title || 'a quiz'}"`;
         } else if (activity.action === "quiz_assigned" && String(activity.targetUser) === String(req.user._id)) {
           message = `You were assigned "${activity.targetQuiz?.title || 'a quiz'}"`;
+        } else if(activity.action === "quiz_assigned_all" && String(activity.targetUser) === String(req.user._id)) {
+          message = `You were "${activity.targetQuiz?.title || 'a quiz'}"`;
         } else if (activity.action === "profile_updated" && String(activity.performedBy?._id) === String(req.user._id)) {
           message = `You updated your profile`;
         } else if (activity.action === "submission_graded" && String(activity.targetUser) === String(req.user._id)) {

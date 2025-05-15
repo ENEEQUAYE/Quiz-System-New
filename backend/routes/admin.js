@@ -379,6 +379,63 @@ router.post('/students/:id/quizzes', [
     });
   }
 });
+
+
+// Assign quiz to all students
+router.post('/quizzes/:quizId/assign-all', async (req, res) => {
+  try {
+    const quizId = req.params.quizId;
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({ success: false, error: 'Quiz not found' });
+    }
+
+    // Find all active students
+    const students = await User.find({ role: 'student', status: 'active' }).select('_id firstName lastName');
+    const studentIds = students.map(s => s._id);
+
+    // Update the quiz's allowedStudents
+    await Quiz.updateOne(
+      { _id: quizId },
+      { $addToSet: { allowedStudents: { $each: studentIds } } }
+    );
+
+    // Update each student's quizzesAllowed
+    await User.updateMany(
+      { _id: { $in: studentIds } },
+      { $addToSet: { quizzesAllowed: quiz._id } }
+    );
+
+    // Send notification to all students
+    const notifications = studentIds.map(studentId => ({
+      user: studentId,
+      title: 'New Quiz Assigned',
+      message: `You have been assigned the quiz "${quiz.title}".`,
+      createdAt: new Date(),
+      isRead: false
+    }));
+    await Notification.insertMany(notifications);
+
+    // Log the assignment for each student (like assign multiple quizzes to a student)
+    for (const student of students) {
+      await ActivityLog.logWithNotification({
+        action: 'quiz_assigned',
+        description: `${req.user.firstName} ${req.user.lastName} assigned quiz "${quiz.title}" to ${student.firstName} ${student.lastName}`,
+        performedBy: req.user._id,
+        targetUser: student._id,
+        targetQuiz: quiz._id,
+        notificationTitle: 'New Quiz Assigned',
+        notificationMessage: `You have been assigned the quiz "${quiz.title}".`
+      });
+    }
+
+    res.json({ success: true, message: 'Quiz assigned to all students successfully' });
+  } catch (error) {
+    console.error('Failed to assign quiz to all students:', error);
+    res.status(500).json({ success: false, error: 'Failed to assign quiz to all students' });
+  }
+});
+
 /**
  * Student Management Endpoints
  */
