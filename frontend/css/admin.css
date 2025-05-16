@@ -1345,6 +1345,15 @@ footer{
     color: #dc3545;
 }
 
+#toast-container {
+    position: fixed;
+    top: 20px; /* Position the container at the top */
+    right: 40%; /* Position the container at the right */
+    z-index: 9999; /* Ensure it appears above other elements */
+    width: auto; /* Adjust width as needed */
+    max-width: 300px; /* Optional: Limit the maximum width */
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .messages-container {

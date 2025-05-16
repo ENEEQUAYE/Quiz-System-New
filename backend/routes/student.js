@@ -398,16 +398,36 @@ router.get("/recipients", async (req, res) => {
  * @route   GET /students/notifications
  * @access  Private (Student)
  */
+// Get notifications
 router.get("/notifications", async (req, res) => {
   try {
-    const notifications = await Message.find({ recipient: req.user._id, type: "notification" })
-      .sort({ createdAt: -1 }) // Sort by most recent
-      .select("title message createdAt");
-
-    res.json({ success: true, notifications });
+    const notifications = await Notification.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(20);
+    res.json({ success: true, notifications: notifications.map(n => n.formatForClient()) });
   } catch (error) {
-    console.error("Error fetching notifications:", error);
     res.status(500).json({ success: false, error: "Failed to fetch notifications" });
+  }
+});
+
+// Get notification count
+router.get("/notifications/count", async (req, res) => {
+  try {
+    const count = await Notification.countDocuments({ user: req.user._id, isRead: false });
+    res.json({ success: true, count });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Failed to fetch notification count" });
+  }
+});
+
+// Mark notifications as read
+router.post("/notifications/mark-read", async (req, res) => {
+  try {
+    const { notificationIds } = req.body;
+    await Notification.markAsRead(req.user._id, notificationIds);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Failed to mark notifications as read" });
   }
 });
 
@@ -467,38 +487,7 @@ router.get("/activities", async (req, res) => {
   }
 });
 
-// Get notifications
-router.get("/notifications", async (req, res) => {
-  try {
-    const notifications = await Notification.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(20);
-    res.json({ success: true, notifications: notifications.map(n => n.formatForClient()) });
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to fetch notifications" });
-  }
-});
 
-// Get notification count
-router.get("/notifications/count", async (req, res) => {
-  try {
-    const count = await Notification.countDocuments({ user: req.user._id, isRead: false });
-    res.json({ success: true, count });
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to fetch notification count" });
-  }
-});
-
-// Mark notifications as read
-router.post("/notifications/mark-read", async (req, res) => {
-  try {
-    const { notificationIds } = req.body;
-    await Notification.markAsRead(req.user._id, notificationIds);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Failed to mark notifications as read" });
-  }
-});
 
 /**
  * @desc    Get a specific quiz

@@ -260,9 +260,11 @@ document.addEventListener("DOMContentLoaded", () => {
     
             if (data.success && data.notifications.length > 0) {
                 // Update the dropdown content
+                let unreadCount = 0;
                 data.notifications.slice(0, 5).forEach((notification) => {
+                    if (!notification.isRead) unreadCount++;
                     const notificationItem = document.createElement("div");
-                    notificationItem.className = "notification-item";
+                    notificationItem.className = "notification-item" + (!notification.isRead ? " unread" : "");
                     notificationItem.innerHTML = `
                         <div class="notification-title">${notification.title}</div>
                         <div class="notification-preview">${notification.message.substring(0, 50)}...</div>
@@ -273,12 +275,16 @@ document.addEventListener("DOMContentLoaded", () => {
     
                 // Update the notification count badge
                 if (notificationCount) {
-                    const unreadCount = data.notifications.filter(n => !n.isRead).length;
                     notificationCount.textContent = unreadCount > 0 ? unreadCount : "0";
                 }
+    
+                // If all loaded notifications are read, show a message
+                if (unreadCount === 0) {
+                    notificationsDropdownContent.innerHTML += '<div class="text-center text-muted py-3">No unread notifications</div>';
+                }
             } else {
-                // No notifications
-                notificationsDropdownContent.innerHTML = '<div class="text-center text-muted py-3">No new notifications</div>';
+                // No notifications at all
+                notificationsDropdownContent.innerHTML = '<div class="text-center text-muted py-3">No notifications</div>';
                 if (notificationCount) notificationCount.textContent = "0";
             }
         })
