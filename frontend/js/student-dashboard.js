@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loadDashboardStats();
         initializeHeaderDropdowns();
         loadRecentActivities();
+        setInterval(loadRecentActivities, 60000); // Refresh every minute
             // Initialize messaging
         setupMessageEventListeners();
         setupComposeModal();
@@ -305,7 +306,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (data.success && data.notifications.length > 0) {
                 const unreadIds = data.notifications
                     .filter(n => !n.isRead)
-                    .map(n => n._id);
+                    .map(n => n.id);
                 if (unreadIds.length > 0) {
                     fetch(`${API_URL}/students/notifications/mark-read`, {
                         method: "POST",
@@ -773,21 +774,20 @@ function debounce(func, wait) {
         })
             .then((response) => response.json())
             .then((data) => {
-                if (data.success) {
-                    document.getElementById("available-quizzes-count").textContent = data.availableQuizzes || 0;
-                    document.getElementById("completed-quizzes-count").textContent = data.completedQuizzes || 0;
-                    document.getElementById("average-score").textContent = `${data.averageScore || 0}%`;
-                    document.getElementById("next-quiz").textContent = data.nextQuiz || "None";
+                document.getElementById("available-quizzes-count").textContent = data.availableQuizzes || 0;
+                document.getElementById("completed-quizzes-count").textContent = data.completedQuizzes || 0;
+                document.getElementById("average-score").textContent = `${data.averageScore || 0}%`;
+    
+                const nextQuizDiv = document.getElementById("next-quiz");
+                if (data.nextQuiz && data.nextQuiz.id && data.nextQuiz.title) {
+                    nextQuizDiv.innerHTML = `<a href="take-quiz.html?id=${data.nextQuiz.id}" id="next-quiz-link" style="text-decoration: underline; cursor: pointer;">${data.nextQuiz.title}</a>`;
                 } else {
-                    console.error("Failed to load dashboard stats:", data.error);
+                    nextQuizDiv.textContent = "None";
                 }
             })
             .catch((error) => {
                 console.error("Error loading dashboard stats:", error);
             });
-
-        // Load the calendar
-
     }
 
 // ========== QUIZZES ==========

@@ -498,7 +498,8 @@ body {
     font-weight: bold;
 }
 
-#next-quiz{
+#next-quiz a{
+    color: #000;
     font-weight: 500;
     font-size: 16px;
 }

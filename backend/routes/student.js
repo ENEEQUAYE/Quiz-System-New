@@ -61,7 +61,7 @@ router.get("/dashboard", async (req, res) => {
       availableQuizzes,
       completedQuizzes: completedQuizzes.length,
       averageScore: formattedAverageScore || 0,
-      nextQuiz: nextQuiz ? nextQuiz.title : "None",
+      nextQuiz: nextQuiz ? { id: nextQuiz._id, title: nextQuiz.title } : null,
     });
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
@@ -402,7 +402,7 @@ router.get("/recipients", async (req, res) => {
 router.get("/notifications", async (req, res) => {
   try {
     const notifications = await Notification.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
+      .sort({ isRead: 1, createdAt: -1 })
       .limit(20);
     res.json({ success: true, notifications: notifications.map(n => n.formatForClient()) });
   } catch (error) {
