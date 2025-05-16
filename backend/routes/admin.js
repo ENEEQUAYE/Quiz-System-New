@@ -406,27 +406,43 @@ router.post('/quizzes/:quizId/assign-all', async (req, res) => {
       { $addToSet: { quizzesAllowed: quiz._id } }
     );
 
-    // Send notification to all students
-    const notifications = studentIds.map(studentId => ({
-      user: studentId,
-      title: 'New Quiz Assigned',
-      message: `You have been assigned the quiz "${quiz.title}".`,
-      createdAt: new Date(),
-      isRead: false
-    }));
-    await Notification.insertMany(notifications);
+    // Send notification to all students (avoid duplicates)
+    for (const studentId of studentIds) {
+      const existingNotification = await Notification.findOne({
+        user: studentId,
+        title: 'New Quiz Assigned',
+        message: `You have been assigned the quiz "${quiz.title}".`
+      });
+      if (!existingNotification) {
+        await Notification.create({
+          user: studentId,
+          title: 'New Quiz Assigned',
+          message: `You have been assigned the quiz "${quiz.title}".`,
+          createdAt: new Date(),
+          isRead: false
+        });
+      }
+    }
 
-    // Log the assignment for each student (like assign multiple quizzes to a student)
+    // Log the assignment for each student (avoid duplicate activity)
     for (const student of students) {
-      await ActivityLog.logWithNotification({
+      const existingActivity = await ActivityLog.findOne({
         action: 'quiz_assigned',
-        description: `${req.user.firstName} ${req.user.lastName} assigned quiz "${quiz.title}" to ${student.firstName} ${student.lastName}`,
         performedBy: req.user._id,
         targetUser: student._id,
-        targetQuiz: quiz._id,
-        notificationTitle: 'New Quiz Assigned',
-        notificationMessage: `You have been assigned the quiz "${quiz.title}".`
+        targetQuiz: quiz._id
       });
+      if (!existingActivity) {
+        await ActivityLog.logWithNotification({
+          action: 'quiz_assigned',
+          description: `${req.user.firstName} ${req.user.lastName} assigned quiz "${quiz.title}" to ${student.firstName} ${student.lastName}`,
+          performedBy: req.user._id,
+          targetUser: student._id,
+          targetQuiz: quiz._id,
+          notificationTitle: 'New Quiz Assigned',
+          notificationMessage: `You have been assigned the quiz "${quiz.title}".`
+        });
+      }
     }
 
     res.json({ success: true, message: 'Quiz assigned to all students successfully' });
