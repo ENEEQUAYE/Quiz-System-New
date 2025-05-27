@@ -6,6 +6,7 @@ const Submission = require('../models/Submission');
 const { check, validationResult } = require('express-validator');
 const ActivityLog = require('../models/ActivityLog');
 const Notification = require('../models/Notification');
+const QuizSession = require('../models/QuizSession');
 
 
 // Get all quizzes with pagination, search, and attempts
@@ -142,6 +143,55 @@ router.get('/:id', [
       success: false,
       error: 'Server error while fetching quiz' 
     });
+  }
+});
+
+// Save quiz session/progress for a student
+router.post('/:id/session', [
+  auth,
+  check('id').isMongoId().withMessage('Invalid quiz ID')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+  try {
+    const quiz = await Quiz.findById(req.params.id);
+    if (!quiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
+
+    if (req.user.role !== 'student') return res.status(403).json({ success: false, error: 'Only students can save progress' });
+
+    const { answers, flaggedQuestions, currentQuestionIndex, timeLeft, quizStartTime } = req.body;
+
+    await QuizSession.findOneAndUpdate(
+      { student: req.user._id, quiz: quiz._id },
+      { $set: { answers, flaggedQuestions, currentQuestionIndex, timeLeft, quizStartTime, updatedAt: new Date() } },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, message: 'Session saved' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Server error while saving session' });
+  }
+});
+
+// Get quiz session/progress for a student
+router.get('/:id/session', [
+  auth,
+  check('id').isMongoId().withMessage('Invalid quiz ID')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+  try {
+    const quiz = await Quiz.findById(req.params.id);
+    if (!quiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
+
+    if (req.user.role !== 'student') return res.status(403).json({ success: false, error: 'Only students can load progress' });
+
+    const session = await QuizSession.findOne({ student: req.user._id, quiz: quiz._id }).lean();
+    res.json({ success: true, session });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Server error while loading session' });
   }
 });
 
