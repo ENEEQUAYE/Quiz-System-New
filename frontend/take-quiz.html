@@ -494,6 +494,7 @@ function applySessionData(data) {
     currentQuestionIndex = typeof data.currentQuestionIndex === "number" ? data.currentQuestionIndex : 0;
     timeLeft = typeof data.timeLeft === "number" ? data.timeLeft : 0;
     quizStartTime = data.quizStartTime || new Date().toISOString();
+     if (typeof updateQuestionNavigation === "function") updateQuestionNavigation();
 }
   
         // Clear quiz session from localStorage
@@ -562,6 +563,9 @@ function applySessionData(data) {
         
                     // Show first question
                     showQuestion(currentQuestionIndex);
+
+                    // update quiz info
+                    updateQuestionNavigation();
                 })
                 .catch(error => {
                     hideLoading();
