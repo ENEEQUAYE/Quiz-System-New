@@ -16,9 +16,24 @@ const studentRoutes = require("./routes/student");
 
 const app = express();
 
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173', 
+    'http://127.0.0.1:5173',
+    'https://cesstigsms.vercel.app',
+    'https://*.vercel.app',
+    'file://' // For local file testing
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Database connection
@@ -32,6 +47,14 @@ mongoose.connect(process.env.MONGODB_URI, {
 });
 
 // Routes
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/quizzes', quizRoutes);
@@ -40,6 +63,16 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use("/api/students", studentRoutes);
+
+// Catch-all for debugging
+app.use('*', (req, res) => {
+  console.log(`Unmatched route: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ 
+    error: 'Route not found', 
+    method: req.method, 
+    url: req.originalUrl 
+  });
+});
 
 
 // Error handling middleware
