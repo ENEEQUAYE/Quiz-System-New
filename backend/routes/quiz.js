@@ -101,7 +101,8 @@ router.get('/', auth, async (req, res) => {
 // Get total quizzes count
 router.get('/count', auth, async (req, res) => {
   try {
-    const count = await Quiz.countDocuments();
+    // Count only active quizzes like the student dashboard
+    const count = await Quiz.countDocuments({ isActive: true });
     res.json({ success: true, data: count });
   } catch (error) {
     console.error('Error fetching quizzes count:', error);
