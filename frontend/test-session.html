@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Session Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Quiz Session Management Test</h1>
+        
+        <div class="test-section info">
+            <h3>Test Instructions</h3>
+            <p>This page demonstrates the new quiz session management features:</p>
+            <ul>
+                <li>Start a mock quiz session</li>
+                <li>Save progress automatically</li>
+                <li>Test session recovery</li>
+                <li>Simulate time-based auto-submission</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>Mock Quiz Session</h3>
+            <div class="timer" id="timer">Time: 05:00</div>
+            <p>Current Question: <span id="currentQuestion">1</span> of 5</p>
+            <p>Answers Saved: <span id="answerCount">0</span></p>
+            <p>Session Status: <span id="sessionStatus">Not Started</span></p>
+            
+            <button onclick="startMockQuiz()">Start Mock Quiz</button>
+            <button onclick="saveProgress()">Save Progress</button>
+            <button onclick="loadSession()">Load Session</button>
+            <button onclick="clearSession()">Clear Session</button>
+            <button onclick="simulateLeaving()">Simulate Leaving Page</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Session Data</h3>
+            <pre id="sessionData">No session data</pre>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Results</h3>
+            <div id="testResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // Mock quiz data
+        let mockQuiz = {
+            id: 'test-quiz-123',
+            timeLimit: 5, // 5 minutes
+            questions: Array.from({length: 5}, (_, i) => ({
+                id: i + 1,
+                text: `Question ${i + 1}?`,
+                options: ['Option A', 'Option B', 'Option C', 'Option D']
+            }))
+        };
+
+        // Quiz state
+        let currentQuestion = 0;
+        let answers = new Array(5).fill(null);
+        let timeLeft = 300; // 5 minutes in seconds
+        let timerInterval = null;
+        let sessionStartTime = null;
+        let awayTime = null;
+
+        function updateDisplay() {
+            document.getElementById('currentQuestion').textContent = currentQuestion + 1;
+            document.getElementById('answerCount').textContent = answers.filter(a => a !== null).length;
+            
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('timer').textContent = 
+                `Time: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+            if (timeLeft < 60) {
+                document.getElementById('timer').style.color = 'red';
+            } else if (timeLeft < 120) {
+                document.getElementById('timer').style.color = 'orange';
+            }
+        }
+
+        function startMockQuiz() {
+            sessionStartTime = new Date().toISOString();
+            timeLeft = 300;
+            currentQuestion = 0;
+            answers = new Array(5).fill(null);
+            
+            // Simulate some answers
+            answers[0] = 1; // Answer B for question 1
+            answers[2] = 3; // Answer D for question 3
+            
+            document.getElementById('sessionStatus').textContent = 'Active';
+            
+            // Start timer
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    autoSubmit();
+                }
+            }, 1000);
+            
+            updateDisplay();
+            addTestResult('Mock quiz started successfully', 'success');
+            
+            // Auto-save every 10 seconds
+            setInterval(saveProgress, 10000);
+        }
+
+        function saveProgress() {
+            const sessionData = {
+                quizId: mockQuiz.id,
+                answers: answers,
+                currentQuestion: currentQuestion,
+                timeLeft: timeLeft,
+                sessionStartTime: sessionStartTime,
+                lastSaved: new Date().toISOString()
+            };
+            
+            // Save to localStorage (simulating backend save)
+            localStorage.setItem('quiz_session_test', JSON.stringify(sessionData));
+            
+            document.getElementById('sessionData').textContent = JSON.stringify(sessionData, null, 2);
+            addTestResult('Progress saved to localStorage', 'success');
+        }
+
+        function loadSession() {
+            const savedSession = localStorage.getItem('quiz_session_test');
+            
+            if (!savedSession) {
+                addTestResult('No saved session found', 'error');
+                return;
+            }
+            
+            const sessionData = JSON.parse(savedSession);
+            
+            // Restore state
+            answers = sessionData.answers;
+            currentQuestion = sessionData.currentQuestion;
+            sessionStartTime = sessionData.sessionStartTime;
+            
+            // Calculate time away
+            const timeAway = Math.floor((Date.now() - new Date(sessionData.lastSaved).getTime()) / 1000);
+            timeLeft = Math.max(0, sessionData.timeLeft - timeAway);
+            
+            document.getElementById('sessionStatus').textContent = 'Resumed';
+            document.getElementById('sessionData').textContent = JSON.stringify(sessionData, null, 2);
+            
+            updateDisplay();
+            
+            if (timeLeft <= 0) {
+                addTestResult('Session loaded but time expired! Auto-submitting...', 'error');
+                autoSubmit();
+            } else {
+                addTestResult(`Session loaded! Time away: ${timeAway} seconds`, 'success');
+                
+                // Restart timer
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    updateDisplay();
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        autoSubmit();
+                    }
+                }, 1000);
+            }
+        }
+
+        function clearSession() {
+            localStorage.removeItem('quiz_session_test');
+            
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            document.getElementById('sessionStatus').textContent = 'Cleared';
+            document.getElementById('sessionData').textContent = 'No session data';
+            addTestResult('Session cleared', 'info');
+        }
+
+        function simulateLeaving() {
+            // Save current time when "leaving"
+            awayTime = Date.now();
+            addTestResult('Simulating leaving page... Click "Load Session" after a few seconds to test time tracking', 'info');
+            
+            // Save progress before leaving
+            saveProgress();
+        }
+
+        function autoSubmit() {
+            clearInterval(timerInterval);
+            document.getElementById('sessionStatus').textContent = 'Auto-Submitted';
+            
+            const submissionData = {
+                answers: answers,
+                timeStarted: sessionStartTime,
+                timeCompleted: new Date().toISOString(),
+                autoSubmitted: true
+            };
+            
+            addTestResult('Quiz auto-submitted due to time expiry!', 'error');
+            document.getElementById('sessionData').textContent = JSON.stringify(submissionData, null, 2);
+            
+            // Clear session after submission
+            clearSession();
+        }
+
+        function addTestResult(message, type) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultElement = document.createElement('div');
+            resultElement.className = `test-section ${type}`;
+            resultElement.innerHTML = `
+                <strong>${new Date().toLocaleTimeString()}</strong>: ${message}
+            `;
+            resultsDiv.appendChild(resultElement);
+            
+            // Keep only last 10 results
+            while (resultsDiv.children.length > 10) {
+                resultsDiv.removeChild(resultsDiv.firstChild);
+            }
+        }
+
+        // Initial display update
+        updateDisplay();
+        
+        // Test page visibility API
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                addTestResult('Page hidden - saving progress...', 'info');
+                saveProgress();
+            } else {
+                addTestResult('Page visible - checking for time changes...', 'info');
+                if (awayTime) {
+                    const timeAway = Math.floor((Date.now() - awayTime) / 1000);
+                    addTestResult(`Welcome back! You were away for ${timeAway} seconds`, 'info');
+                    awayTime = null;
+                }
+            }
+        });
+        
+        addTestResult('Test page loaded successfully', 'success');
+    </script>
+</body>
+</html>

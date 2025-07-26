@@ -93,7 +93,7 @@ const QuizSchema = new mongoose.Schema(
       type: Number,
       default: 60,
       min: [1, "Time limit must be at least 1 minute"],
-      max: [360, "Time limit cannot exceed 240 minutes"],
+      max: [360, "Time limit cannot exceed 360 minutes"],
     },
     attempts: {
       type: Number,

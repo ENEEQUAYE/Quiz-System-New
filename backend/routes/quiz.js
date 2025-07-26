@@ -8,98 +8,97 @@ const ActivityLog = require('../models/ActivityLog');
 const Notification = require('../models/Notification');
 const QuizSession = require('../models/QuizSession');
 
+// Helper function for common error responses
+const errorResponse = (res, status, message) => {
+  return res.status(status).json({ 
+    success: false,
+    error: message 
+  });
+};
+
+// Validate quiz access
+const validateQuizAccess = async (quizId, user) => {
+  const quiz = await Quiz.findById(quizId);
+  if (!quiz) return { error: 'Quiz not found' };
+
+    const hasAccess = user.role === 'admin' ||
+    (user.quizzesAllowed.includes(quiz._id) && quiz.isActive);
+  
+  if (!hasAccess) return { error: 'Access to this quiz is restricted' };
+
+  return { quiz };
+};
+
 
 // Get all quizzes with pagination, search, and attempts
 router.get('/', auth, async (req, res) => {
   try {
-    // Admin gets all quizzes, students only get allowed quizzes
-    const filter = req.user.role === 'admin' 
-      ? {}
-      : { _id: { $in: req.user.quizzesAllowed }, isActive: true };
+    const { role, quizzesAllowed } = req.user;
+    const { page = 1, limit = 10, search } = req.query;
 
-    // Pagination
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    // Build filter
+    const filter = role === 'admin' 
+      ? {} 
+      : { 
+          _id: { $in: quizzesAllowed }, 
+          isActive: true 
+        };
 
-    // Search
-    if (req.query.search) {
+    if (search) {
       filter.$or = [
-        { title: { $regex: req.query.search, $options: 'i' } },
-        { description: { $regex: req.query.search, $options: 'i' } }
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
       ];
     }
 
-    // Fetch quizzes
-    const [quizzes, total] = await Promise.all([
+    // Execute queries in parallel
+    const [quizzes, total, attempts] = await Promise.all([
       Quiz.find(filter)
         .sort('order')
-        .skip(skip)
+        .skip((page - 1) * limit)
         .limit(limit)
-        .select('title description questions order createdAt'), // Include necessary fields
-      Quiz.countDocuments(filter)
+        .select('title description questions order createdAt'),
+      Quiz.countDocuments(filter),
+      Submission.aggregate([
+        { $group: { _id: "$quiz", totalAttempts: { $sum: 1 } } }
+      ])
     ]);
 
-    // Fetch total attempts for each quiz
-    const attempts = await Submission.aggregate([
-      { $group: { _id: "$quiz", totalAttempts: { $sum: 1 } } },
-    ]);
+    // Create attempts map
+    const attemptsMap = attempts.reduce((map, { _id, totalAttempts }) => ({
+      ...map,
+      [_id]: totalAttempts
+    }), {});
 
-    // Map attempts to quizzes
-    const attemptsMap = attempts.reduce((map, attempt) => {
-      map[attempt._id] = attempt.totalAttempts;
-      return map;
-    }, {});
-
-    // Add attempts to quizzes
-    const quizzesWithAttempts = quizzes.map((quiz) => ({
+    // Format response
+    const data = quizzes.map(quiz => ({
       _id: quiz._id,
       title: quiz.title,
       description: quiz.description,
       totalQuestions: quiz.questions.length,
       order: quiz.order,
       createdAt: quiz.createdAt,
-      attempts: attemptsMap[quiz._id] || 0, // Default to 0 if no attempts
+      attempts: attemptsMap[quiz._id] || 0
     }));
 
     res.json({
       success: true,
-      data: quizzesWithAttempts,
+      data,
       pagination: {
-        page,
-        limit,
+        page: Number(page),
+        limit: Number(limit),
         total,
-        pages: Math.ceil(total / limit),
-      },
+        pages: Math.ceil(total / limit)
+      }
     });
+
   } catch (error) {
     console.error('Error fetching quizzes:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Server error while fetching quizzes'
-    });
+    errorResponse(res, 500, 'Server error while fetching quizzes');
   }
 });
 
-//Get total quizzes count
-router.get('/count', auth, async (req, res) => {
-try {
-    const total = await Quiz.countDocuments({});
-    res.json({
-      success: true,
-      total
-    });
-  } catch (error) {
-    console.error('Error fetching total quizzes count:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Server error while fetching total quizzes count'
-    });
-  }
-});
-
-
-// Get quiz by ID with proper access control
+// Get quiz by ID with access control
 router.get('/:id', [
   auth,
   check('id').isMongoId().withMessage('Invalid quiz ID')
@@ -110,24 +109,8 @@ router.get('/:id', [
   }
 
   try {
-    const quiz = await Quiz.findById(req.params.id);
-    if (!quiz) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Quiz not found' 
-      });
-    }
-
-    // Check access
-    const hasAccess = req.user.role === 'admin' || 
-      (req.user.quizzesAllowed.includes(quiz._id) && quiz.isActive);
-    
-    if (!hasAccess) {
-      return res.status(403).json({ 
-        success: false,
-        error: 'Access to this quiz is restricted' 
-      });
-    }
+    const { quiz, error } = await validateQuizAccess(req.params.id, req.user);
+    if (error) return errorResponse(res, error.includes('not found') ? 404 : 403, error);
 
     // For students, hide correct answers
     if (req.user.role === 'student') {
@@ -137,61 +120,205 @@ router.get('/:id', [
     }
 
     res.json({ success: true, data: quiz });
+
   } catch (error) {
     console.error('Error fetching quiz:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Server error while fetching quiz' 
+    errorResponse(res, 500, 'Server error while fetching quiz');
+  }
+});
+
+// Quiz session management
+router.route('/:id/session')
+  .all(
+    auth,
+    check('id').isMongoId().withMessage('Invalid quiz ID'),
+    async (req, res, next) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+      if (req.user.role !== 'student') return errorResponse(res, 403, 'Only students can manage quiz sessions');
+      next();
+    }
+  )
+  // Save session
+  .post(async (req, res) => {
+    try {
+      const { quiz, error } = await validateQuizAccess(req.params.id, req.user);
+      if (error) return errorResponse(res, error.includes('not found') ? 404 : 403, error);
+
+      const { answers, flaggedQuestions, currentQuestionIndex, timeLeft, quizStartTime } = req.body;
+
+      await QuizSession.findOneAndUpdate(
+        { student: req.user._id, quiz: quiz._id },
+        { 
+          answers, 
+          flaggedQuestions, 
+          currentQuestionIndex, 
+          timeLeft, 
+          quizStartTime, 
+          updatedAt: new Date() 
+        },
+        { upsert: true, new: true }
+      );
+
+      res.json({ success: true, message: 'Session saved' });
+
+    } catch (error) {
+      console.error('Error saving session:', error);
+      errorResponse(res, 500, 'Server error while saving session');
+    }
+  })
+  // Get session
+  .get(async (req, res) => {
+    try {
+      const { quiz, error } = await validateQuizAccess(req.params.id, req.user);
+      if (error) return errorResponse(res, error.includes('not found') ? 404 : 403, error);
+
+      const session = await QuizSession.findOne({ 
+        student: req.user._id, 
+        quiz: quiz._id 
+      }).lean();
+
+      res.json({ success: true, session });
+
+    } catch (error) {
+      console.error('Error loading session:', error);
+      errorResponse(res, 500, 'Server error while loading session');
+    }
+  })
+  // Delete session
+  .delete(async (req, res) => {
+    try {
+      await QuizSession.deleteOne({
+        student: req.user._id,
+        quiz: req.params.id
+      });
+      res.json({ success: true, message: 'Session cleared' });
+    } catch (error) {
+      console.error('Error clearing session:', error);
+      errorResponse(res, 500, 'Failed to clear session');
+    }
+  });
+
+// Auto-submit quiz when time expires
+router.post('/:id/auto-submit', [
+  auth,
+  check('id').isMongoId().withMessage('Invalid quiz ID')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { quiz, error } = await validateQuizAccess(req.params.id, req.user);
+    if (error) return errorResponse(res, error.includes('not found') ? 404 : 403, error);
+
+    // Get the existing session
+    const session = await QuizSession.findOne({ 
+      student: req.user._id, 
+      quiz: quiz._id 
     });
-  }
-});
 
-// Save quiz session/progress for a student
-router.post('/:id/session', [
-  auth,
-  check('id').isMongoId().withMessage('Invalid quiz ID')
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    if (!session) {
+      return errorResponse(res, 404, 'No active session found');
+    }
 
-  try {
-    const quiz = await Quiz.findById(req.params.id);
-    if (!quiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
+    // Use session data for submission
+    const answers = session.answers || new Array(quiz.questions.length).fill(-1);
+    const timeStarted = session.quizStartTime;
+    const timeCompleted = new Date().toISOString();
+    const attemptNumber = 1;
 
-    if (req.user.role !== 'student') return res.status(403).json({ success: false, error: 'Only students can save progress' });
+    // Calculate results
+    let score = 0;
+    let correctAnswers = 0;
+    let incorrectAnswers = 0;
+    let unansweredQuestions = 0;
 
-    const { answers, flaggedQuestions, currentQuestionIndex, timeLeft, quizStartTime } = req.body;
+    const answerDetails = quiz.questions.map((question, index) => {
+      const selectedOption = answers[index];
+      const isCorrect = selectedOption === question.correctAnswer;
 
-    await QuizSession.findOneAndUpdate(
-      { student: req.user._id, quiz: quiz._id },
-      { $set: { answers, flaggedQuestions, currentQuestionIndex, timeLeft, quizStartTime, updatedAt: new Date() } },
-      { upsert: true, new: true }
-    );
+      if (selectedOption === -1 || selectedOption === null || selectedOption === undefined) {
+        unansweredQuestions++;
+      } else if (isCorrect) {
+        correctAnswers++;
+        score += question.points;
+      } else {
+        incorrectAnswers++;
+      }
 
-    res.json({ success: true, message: 'Session saved' });
+      return {
+        questionId: question._id,
+        questionText: question.questionText,
+        selectedOption: selectedOption === null || selectedOption === undefined ? -1 : selectedOption,
+        correctAnswer: question.correctAnswer,
+        isCorrect,
+        pointsEarned: isCorrect ? question.points : 0,
+        pointsPossible: question.points,
+      };
+    });
+
+    const totalQuestions = quiz.questions.length;
+    const totalPossible = quiz.questions.reduce((sum, q) => sum + q.points, 0);
+    const percentage = Math.round((score / totalPossible) * 100);
+    const duration = Math.floor((new Date(timeCompleted) - new Date(timeStarted)) / 1000);
+
+    // Create submission
+    const submission = new Submission({
+      student: req.user._id,
+      quiz: quiz._id,
+      attemptNumber,
+      answers: answerDetails,
+      score,
+      totalPossible,
+      percentage,
+      passed: percentage >= quiz.passingScore,
+      timeStarted,
+      timeCompleted,
+      duration,
+    });
+
+    await submission.save();
+
+    // Clear the session after submission
+    await QuizSession.deleteOne({
+      student: req.user._id,
+      quiz: quiz._id
+    });
+
+    // Log activity and send notification
+    await ActivityLog.logWithNotification({
+      action: 'quiz_auto_submitted',
+      description: `${req.user.firstName} ${req.user.lastName} auto-submitted quiz "${quiz.title}" due to time expiry`,
+      performedBy: req.user._id,
+      targetUser: req.user._id,
+      targetQuiz: quiz._id,
+      notificationTitle: 'Quiz Auto-Submitted',
+      notificationMessage: `Your quiz "${quiz.title}" was automatically submitted due to time expiry.`
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        submissionId: submission._id,
+        score,
+        totalPossible,
+        percentage,
+        passed: submission.passed,
+        totalQuestions,
+        correctAnswers,
+        incorrectAnswers,
+        unansweredQuestions,
+        timeSpent: duration,
+        passingScore: quiz.passingScore,
+        autoSubmitted: true
+      },
+    });
+
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Server error while saving session' });
-  }
-});
-
-// Get quiz session/progress for a student
-router.get('/:id/session', [
-  auth,
-  check('id').isMongoId().withMessage('Invalid quiz ID')
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
-  try {
-    const quiz = await Quiz.findById(req.params.id);
-    if (!quiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
-
-    if (req.user.role !== 'student') return res.status(403).json({ success: false, error: 'Only students can load progress' });
-
-    const session = await QuizSession.findOne({ student: req.user._id, quiz: quiz._id }).lean();
-    res.json({ success: true, session });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Server error while loading session' });
+    console.error('Error auto-submitting quiz:', error);
+    errorResponse(res, 500, 'Failed to auto-submit quiz');
   }
 });
 
@@ -200,9 +327,9 @@ router.post('/:id/submit', [
   auth,
   check('id').isMongoId().withMessage('Invalid quiz ID'),
   check('answers').isArray().withMessage('Answers must be an array'),
-  check('timeStarted').notEmpty().withMessage('Start time is required'),
-  check('timeCompleted').notEmpty().withMessage('Completion time is required'),
-  check('attemptNumber').isInt({ min: 1 }).withMessage('Attempt number is required'),
+  check('timeStarted').isISO8601().withMessage('Valid start time is required'),
+  check('timeCompleted').isISO8601().withMessage('Valid completion time is required'),
+  check('attemptNumber').isInt({ min: 1 }).withMessage('Valid attempt number is required'),
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -210,25 +337,19 @@ router.post('/:id/submit', [
   }
 
   try {
-    const quiz = await Quiz.findById(req.params.id);
-    if (!quiz) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Quiz not found' 
-      });
-    }
+    const { quiz, error } = await validateQuizAccess(req.params.id, req.user);
+    if (error) return errorResponse(res, error.includes('not found') ? 404 : 403, error);
 
     const { answers, timeStarted, timeCompleted, attemptNumber } = req.body;
 
-    // Validate answers
+    // Validate answers length
     if (answers.length !== quiz.questions.length) {
-      return res.status(400).json({ 
-        success: false,
-        error: `Expected ${quiz.questions.length} answers, got ${answers.length}` 
-      });
+      return errorResponse(res, 400, 
+        `Expected ${quiz.questions.length} answers, got ${answers.length}`
+      );
     }
 
-    // Calculate score and answer details
+    // Calculate results
     let score = 0;
     let correctAnswers = 0;
     let incorrectAnswers = 0;
@@ -261,7 +382,9 @@ router.post('/:id/submit', [
     const totalQuestions = quiz.questions.length;
     const totalPossible = quiz.questions.reduce((sum, q) => sum + q.points, 0);
     const percentage = Math.round((score / totalPossible) * 100);
+    const duration = Math.floor((new Date(timeCompleted) - new Date(timeStarted)) / 1000);
 
+    // Create submission
     const submission = new Submission({
       student: req.user._id,
       quiz: quiz._id,
@@ -273,10 +396,27 @@ router.post('/:id/submit', [
       passed: percentage >= quiz.passingScore,
       timeStarted,
       timeCompleted,
-      duration: Math.floor((new Date(timeCompleted) - new Date(timeStarted)) / 1000), // Duration in seconds
+      duration,
     });
 
     await submission.save();
+
+    // Clear the session after submission
+    await QuizSession.deleteOne({
+      student: req.user._id,
+      quiz: quiz._id
+    });
+
+    // Log activity and send notification
+    await ActivityLog.logWithNotification({
+      action: 'quiz_attempted',
+      description: `${req.user.firstName} ${req.user.lastName} attempted quiz "${quiz.title}"`,
+      performedBy: req.user._id,
+      targetUser: req.user._id,
+      targetQuiz: quiz._id,
+      notificationTitle: 'Quiz Attempted',
+      notificationMessage: `You attempted the quiz "${quiz.title}".`
+    });
 
     res.status(201).json({
       success: true,
@@ -290,142 +430,95 @@ router.post('/:id/submit', [
         correctAnswers,
         incorrectAnswers,
         unansweredQuestions,
-        timeSpent: submission.duration,
+        timeSpent: duration,
         passingScore: quiz.passingScore,
       },
     });
 
-    // Log activity and send notification to student
-    await ActivityLog.logWithNotification({
-      action: 'quiz_attempted',
-      description: `${req.user.firstName} ${req.user.lastName} attempted quiz "${quiz.title}"`,
-      performedBy: req.user._id,
-      targetUser: req.user._id,
-      targetQuiz: quiz._id,
-      notificationTitle: 'Quiz Attempted',
-      notificationMessage: `You attempted the quiz "${quiz.title}".`
-    });
-
   } catch (error) {
     console.error('Error submitting quiz:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to submit quiz' 
-    });
+    errorResponse(res, 500, 'Failed to submit quiz');
   }
 });
 
-// ...existing code...
-
+// Get submission details
 router.get('/submissions/:id', auth, async (req, res) => {
-    try {
-        const submission = await Submission.findById(req.params.id)
-            .populate('quiz', 'title subject questions') // Populate quiz details
-            .lean();
-
-        if (!submission) {
-            return res.status(404).json({
-                success: false,
-                error: 'Submission not found',
-            });
-        }
-
-        res.json({
-            success: true,
-            data: {
-                quiz: submission.quiz,
-                answers: submission.answers,
-                score: submission.score,
-                totalPossible: submission.totalPossible,
-                percentage: submission.percentage,
-                passed: submission.passed,
-                timeStarted: submission.timeStarted,
-                timeCompleted: submission.timeCompleted,
-                duration: submission.duration,
-            },
-        });
-    } catch (error) {
-        console.error('Error fetching submission details:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Server error while fetching submission details',
-        });
-    }
-});
-
-
-
-//Get total individual quiz attempts
-router.get('/:id/attempts', auth, async (req, res) => {
   try {
-    const quiz = await Quiz.findById(req.params.id);
-    if (!quiz) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Quiz not found' 
-      });
+    const submission = await Submission.findById(req.params.id)
+      .populate('quiz', 'title subject questions')
+      .lean();
+
+    if (!submission) {
+      return errorResponse(res, 404, 'Submission not found');
     }
 
-    // Check access
-    const hasAccess = req.user.role === 'admin' || 
-      (req.user.quizzesAllowed.includes(quiz._id) && quiz.isActive);
-    
-    if (!hasAccess) {
-      return res.status(403).json({ 
-        success: false,
-        error: 'Access to this quiz is restricted' 
-      });
+    // Verify the requesting user owns this submission or is admin
+    if (req.user.role !== 'admin' && !submission.student.equals(req.user._id)) {
+      return errorResponse(res, 403, 'Access to this submission is restricted');
     }
 
-    const attempts = await Submission.countDocuments({ quiz: quiz._id });
     res.json({
       success: true,
-      data: attempts
+      data: {
+        quiz: submission.quiz,
+        answers: submission.answers,
+        score: submission.score,
+        totalPossible: submission.totalPossible,
+        percentage: submission.percentage,
+        passed: submission.passed,
+        timeStarted: submission.timeStarted,
+        timeCompleted: submission.timeCompleted,
+        duration: submission.duration,
+      },
     });
+
   } catch (error) {
-    console.error('Error fetching quiz attempts:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error while fetching quiz attempts'
-    });
+    console.error('Error fetching submission details:', error);
+    errorResponse(res, 500, 'Server error while fetching submission details');
   }
 });
 
-
-// Get total attempts made by all students
-router.get('/attempts', auth, async (req, res) => {
+// Get quiz attempts count
+router.get('/:id/attempts', auth, async (req, res) => {
   try {
-    const attempts = await Submission.aggregate([
-      { $group: { _id: null, totalAttempts: { $sum: 1 } } },
+    const { quiz, error } = await validateQuizAccess(req.params.id, req.user);
+    if (error) return errorResponse(res, error.includes('not found') ? 404 : 403, error);
+
+    const attempts = await Submission.countDocuments({ quiz: quiz._id });
+    res.json({ success: true, data: attempts });
+
+  } catch (error) {
+    console.error('Error fetching quiz attempts:', error);
+    errorResponse(res, 500, 'Server error while fetching quiz attempts');
+  }
+});
+
+// Get total attempts across all quizzes
+router.get('/attempts/total', auth, async (req, res) => {
+  try {
+    const result = await Submission.aggregate([
+      { $group: { _id: null, totalAttempts: { $sum: 1 } } }
     ]);
     
     res.json({
       success: true,
-      data: attempts[0] ? attempts[0].totalAttempts : 0
+      data: result[0]?.totalAttempts || 0
     });
+
   } catch (error) {
     console.error('Error fetching total attempts:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error while fetching total attempts'
-    });
+    errorResponse(res, 500, 'Server error while fetching total attempts');
   }
 });
 
-//Get total submissions count
+// Get total submissions count
 router.get('/submissions/count', auth, async (req, res) => {
   try {
     const count = await Submission.countDocuments();
-    res.json({
-      success: true,
-      data: count
-    });
+    res.json({ success: true, data: count });
   } catch (error) {
     console.error('Error fetching submissions count:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error while fetching submissions count'
-    });
+    errorResponse(res, 500, 'Server error while fetching submissions count');
   }
 });
 
