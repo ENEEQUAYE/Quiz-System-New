@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard Stats Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .stat-card {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .stat-label {
+            font-weight: bold;
+            margin-right: 10px;
+            min-width: 200px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .test-results {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Admin Dashboard Stats Test</h1>
+        <p>This page tests the quiz count and submissions count endpoints.</p>
+        
+        <button onclick="testEndpoints()">Test All Endpoints</button>
+        <button onclick="clearResults()">Clear Results</button>
+        
+        <div class="stat-card">
+            <div class="stat-label">Total Students:</div>
+            <div class="stat-value" id="students-count">-</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-label">Pending Approvals:</div>
+            <div class="stat-value" id="pending-approvals-count">-</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-label">Total Quizzes:</div>
+            <div class="stat-value" id="quizzes-count">-</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-label">Quiz Submissions:</div>
+            <div class="stat-value" id="quiz-submissions-count">-</div>
+        </div>
+        
+        <div id="test-results" class="test-results" style="display: none;">
+            <h3>Test Results:</h3>
+            <div id="results-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://quiz-system-new.onrender.com/api";
+        
+        // Mock token for testing - you would need a real token
+        const token = localStorage.getItem("token") || "your-test-token";
+        
+        async function testEndpoint(url, elementId, label) {
+            try {
+                console.log(`Testing ${label}: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log(`${label} response:`, data);
+                
+                if (data.success) {
+                    const count = data.data || data.totalPendingStudents || data.total || 0;
+                    document.getElementById(elementId).textContent = count;
+                    logResult(`✅ ${label}: ${count}`, 'success');
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+                
+            } catch (error) {
+                console.error(`Error testing ${label}:`, error);
+                document.getElementById(elementId).textContent = 'Error';
+                logResult(`❌ ${label}: ${error.message}`, 'error');
+            }
+        }
+        
+        function logResult(message, type) {
+            const resultsDiv = document.getElementById('test-results');
+            const contentDiv = document.getElementById('results-content');
+            
+            resultsDiv.style.display = 'block';
+            
+            const resultElement = document.createElement('div');
+            resultElement.style.margin = '5px 0';
+            resultElement.style.padding = '8px';
+            resultElement.style.borderRadius = '4px';
+            
+            if (type === 'success') {
+                resultElement.style.backgroundColor = '#d4edda';
+                resultElement.style.color = '#155724';
+            } else {
+                resultElement.style.backgroundColor = '#f8d7da';
+                resultElement.style.color = '#721c24';
+            }
+            
+            resultElement.textContent = message;
+            contentDiv.appendChild(resultElement);
+        }
+        
+        async function testEndpoints() {
+            clearResults();
+            
+            if (!token || token === "your-test-token") {
+                logResult("⚠️ No valid token found. Please log in to admin dashboard first.", 'error');
+                return;
+            }
+            
+            logResult("🧪 Starting endpoint tests...", 'success');
+            
+            // Test all endpoints
+            await testEndpoint(`${API_URL}/admin/students/count`, 'students-count', 'Students Count');
+            await testEndpoint(`${API_URL}/users/pending/count`, 'pending-approvals-count', 'Pending Approvals');
+            await testEndpoint(`${API_URL}/quizzes/count`, 'quizzes-count', 'Quizzes Count');
+            await testEndpoint(`${API_URL}/quizzes/submissions/count`, 'quiz-submissions-count', 'Quiz Submissions');
+            
+            logResult("✅ All tests completed!", 'success');
+        }
+        
+        function clearResults() {
+            document.getElementById('results-content').innerHTML = '';
+            document.getElementById('test-results').style.display = 'none';
+            
+            // Reset counts
+            ['students-count', 'pending-approvals-count', 'quizzes-count', 'quiz-submissions-count']
+                .forEach(id => document.getElementById(id).textContent = '-');
+        }
+        
+        // Test on page load if token exists
+        window.addEventListener('load', () => {
+            if (token && token !== "your-test-token") {
+                setTimeout(testEndpoints, 1000);
+            } else {
+                logResult("ℹ️ Ready to test. Please ensure you're logged in with a valid admin token.", 'success');
+            }
+        });
+    </script>
+</body>
+</html>

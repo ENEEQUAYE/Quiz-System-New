@@ -1039,15 +1039,13 @@ function addOption(questionItem, uniqueId) {
 
     //Fetch quizzes count
     fetchData(`${API_URL}/quizzes/count`, (data) => {
-        document.getElementById("quizzes-count").textContent = data.total || 0
+        document.getElementById("quizzes-count").textContent = data.data || 0
     })
 
-    // //Fetch total attempts count
-    // console.log('Fetching total attempts from:', `${API_URL}/quizzes/attempts`);
-    // fetchData(`${API_URL}/quizzes/attempts`, (data) => {
-    //   console.log('Total attempts data:', data);
-    //   document.getElementById("quiz-submissions-count").textContent = data.total || 0;
-    // });
+    //Fetch total submissions count
+    fetchData(`${API_URL}/quizzes/submissions/count`, (data) => {
+        document.getElementById("quiz-submissions-count").textContent = data.data || 0;
+    });
  
 
     
