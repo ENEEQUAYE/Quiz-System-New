@@ -98,6 +98,17 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Get total quizzes count
+router.get('/count', auth, async (req, res) => {
+  try {
+    const count = await Quiz.countDocuments();
+    res.json({ success: true, data: count });
+  } catch (error) {
+    console.error('Error fetching quizzes count:', error);
+    errorResponse(res, 500, 'Server error while fetching quizzes count');
+  }
+});
+
 // Get quiz by ID with access control
 router.get('/:id', [
   auth,
@@ -519,17 +530,6 @@ router.get('/attempts/total', auth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching total attempts:', error);
     errorResponse(res, 500, 'Server error while fetching total attempts');
-  }
-});
-
-// Get total quizzes count
-router.get('/count', auth, async (req, res) => {
-  try {
-    const count = await Quiz.countDocuments();
-    res.json({ success: true, data: count });
-  } catch (error) {
-    console.error('Error fetching quizzes count:', error);
-    errorResponse(res, 500, 'Server error while fetching quizzes count');
   }
 });
 
