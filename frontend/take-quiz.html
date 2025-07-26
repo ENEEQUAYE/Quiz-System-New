@@ -418,15 +418,12 @@
             let timerInterval = null;
             let resultData = null;
             let quizStartTime; // Add this at the top of the script
-<<<<<<< HEAD
             let sessionSaveInterval = null;
             let lastSaveTime = 0;
             const SAVE_INTERVAL = 10000; // Save every 10 seconds
             const BACKGROUND_CHECK_INTERVAL = 5000; // Check if we're back every 5 seconds
             let backgroundCheckInterval = null;
             let originalTimeLimit = 0;
-=======
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
             
             // Bootstrap modals
             const resultModal = new bootstrap.Modal(document.getElementById("resultModal"));
@@ -441,7 +438,6 @@
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
-<<<<<<< HEAD
                 })
                     .then(response => {
                         if (!response.ok) {
@@ -672,74 +668,15 @@
                     console.error("Error auto-submitting quiz:", error);
                     showToast("Failed to auto-submit quiz: " + error.message, "danger");
                 });
-=======
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        hideLoading();
-            
-                        if (!data.success) {
-                            throw new Error(data.error || "Failed to load quiz");
-                        }
-            
-                        quiz = data.data;
-            
-                        // Initialize quiz start time
-                        quizStartTime = new Date().toISOString(); // Add this line
-            
-                        // Initialize quiz
-                        document.getElementById("quiz-title").textContent = quiz.title;
-                        document.getElementById("quiz-subject").textContent = quiz.subject || "General";
-                        document.getElementById("quiz-total-questions").textContent = quiz.questions.length;
-                        document.getElementById("quiz-passing-score").textContent = `${quiz.passingScore || 70}%`;
-            
-                        // Initialize timer
-                        timeLeft = quiz.timeLimit * 60; // Convert minutes to seconds
-                        updateTimer();
-                        timerInterval = setInterval(updateTimer, 1000);
-            
-                        // Initialize answers array
-                        answers = new Array(quiz.questions.length).fill(null);
-                        flaggedQuestions = new Array(quiz.questions.length).fill(false);
-            
-                        // Initialize progress
-                        updateProgress();
-            
-                        // Initialize question navigation
-                        initQuestionNavigation();
-            
-                        // Show first question
-                        showQuestion(0);
-                    })
-                    .catch(error => {
-                        hideLoading();
-                        console.error("Error loading quiz:", error);
-                        showToast("Failed to load quiz: " + error.message, "danger");
-                        setTimeout(() => {
-                            window.location.href = "student-dashboard.html";
-                        }, 2000);
-                    });
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
             }
 
 
             function updateTimer() {
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
-<<<<<<< HEAD
                     showToast("Time's up! Auto-submitting your quiz...", "warning");
                     setTimeout(() => {
                         autoSubmitQuiz();
-=======
-                    showToast("Time's up! Submitting your quiz...", "warning");
-                    setTimeout(() => {
-                        submitQuiz();
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
                     }, 1000);
                     return;
                 }
@@ -779,14 +716,10 @@
                     button.className = "question-nav-btn";
                     button.textContent = index + 1;
                     button.setAttribute("aria-label", `Go to question ${index + 1}`);
-<<<<<<< HEAD
                     button.addEventListener("click", () => {
                         saveQuizSession();
                         showQuestion(index);
                     });
-=======
-                    button.addEventListener("click", () => showQuestion(index));
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
                     
                     navigationContainer.appendChild(button);
                 });
@@ -856,11 +789,8 @@
                         answers[currentQuestionIndex] = parseInt(input.value);
                         updateProgress();
                         updateQuestionNavigation();
-<<<<<<< HEAD
                         // Save session when answer changes
                         saveQuizSession();
-=======
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
                     });
                 });
                 
@@ -875,18 +805,12 @@
             
             // Event listeners for navigation buttons
             document.getElementById("prev-btn").addEventListener("click", () => {
-<<<<<<< HEAD
                 saveQuizSession();
-=======
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
                 showQuestion(currentQuestionIndex - 1);
             });
             
             document.getElementById("next-btn").addEventListener("click", () => {
-<<<<<<< HEAD
                 saveQuizSession();
-=======
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
                 showQuestion(currentQuestionIndex + 1);
             });
             
@@ -905,11 +829,8 @@
                 }
                 
                 updateQuestionNavigation();
-<<<<<<< HEAD
                 // Save session when flagging
                 saveQuizSession();
-=======
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
             });
             
             document.getElementById("submit-btn").addEventListener("click", () => {
@@ -980,12 +901,9 @@
                         if (!data.success) {
                             throw new Error(data.error || "Failed to submit quiz");
                         }
-<<<<<<< HEAD
 
                         // Clear session and intervals
                         clearQuizSession();
-=======
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
             
                         // Store result data
                         resultData = data.data;
@@ -1090,7 +1008,6 @@
                             : 'You did not pass this quiz. You may be able to retake it later.'}
                     </div>
                     
-<<<<<<< HEAD
                     ${results.autoSubmitted ? `
                         <div class="alert alert-info mt-3">
                             <i class="fas fa-clock me-2"></i>
@@ -1098,8 +1015,6 @@
                         </div>
                     ` : ''}
                     
-=======
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
                     <p class="text-center mt-3">
                         Click "View Detailed Results" to see a breakdown of your answers and explanations.
                     </p>
@@ -1201,17 +1116,13 @@
             window.addEventListener("beforeunload", (event) => {
                 // If quiz is in progress and not submitted
                 if (quiz && !resultData) {
-<<<<<<< HEAD
                     // Save session before leaving
                     saveQuizSession();
-=======
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
                     event.preventDefault();
                     event.returnValue = "You have an unfinished quiz. Are you sure you want to leave?";
                     return event.returnValue;
                 }
             });
-<<<<<<< HEAD
 
             // Handle visibility change to manage timer when user leaves/returns
             document.addEventListener("visibilitychange", () => {
@@ -1249,8 +1160,6 @@
                     saveQuizSession();
                 }
             });
-=======
->>>>>>> 83366c9f27dee3f15f21ea9afafed96613831742
         });
     </script>
 </body>
