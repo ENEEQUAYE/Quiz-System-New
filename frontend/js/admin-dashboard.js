@@ -1039,7 +1039,7 @@ function addOption(questionItem, uniqueId) {
 
     //Fetch quizzes count
     fetchData(`${API_URL}/quizzes/count`, (data) => {
-        document.getElementById("quizzes-count").textContent = data.data || 0
+        document.getElementById("quizzes-count").textContent = data.total || 0
     })
 
     //Fetch total submissions count

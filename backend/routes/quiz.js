@@ -98,15 +98,20 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Get total quizzes count
+//Get total quizzes count
 router.get('/count', auth, async (req, res) => {
-  try {
-    // Count only active quizzes like the student dashboard
-    const count = await Quiz.countDocuments({ isActive: true });
-    res.json({ success: true, data: count });
+try {
+    const total = await Quiz.countDocuments({});
+    res.json({
+      success: true,
+      total
+    });
   } catch (error) {
-    console.error('Error fetching quizzes count:', error);
-    errorResponse(res, 500, 'Server error while fetching quizzes count');
+    console.error('Error fetching total quizzes count:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Server error while fetching total quizzes count'
+    });
   }
 });
 
