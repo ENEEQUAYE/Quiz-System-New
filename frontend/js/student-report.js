@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_URL = "https://quiz-system-new.onrender.com/api"; // Replace with your actual API URL
+  // Use the API_URL from config.js instead of hardcoded URL
+  // const API_URL = "https://quiz-system-new.onrender.com/api"; // Replace with your actual API URL
   const token = localStorage.getItem("token");
 
   if (!token) {
