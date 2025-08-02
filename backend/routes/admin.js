@@ -746,7 +746,7 @@ router.get('/students/:id/report', [
 
     // Fetch submissions for the student
     const submissions = await Submission.find({ student: student._id })
-      .populate('quiz', 'title')
+      .populate('quiz', 'title description')
       .lean();
 
     // Group submissions by quiz ID and calculate the highest score for each quiz
@@ -756,6 +756,7 @@ router.get('/students/:id/report', [
       if (!quizScores[quizId] || submission.percentage > quizScores[quizId].percentage) {
         quizScores[quizId] = {
           quizTitle: submission.quiz.title,
+          quizDescription: submission.quiz.description,
           percentage: submission.percentage,
           timeCompleted: submission.timeCompleted
         };
@@ -785,6 +786,7 @@ router.get('/students/:id/report', [
     // Prepare the report
     const report = uniqueQuizzes.map((quiz, index) => ({
       quizTitle: quiz.quizTitle,
+      quizDescription: quiz.quizDescription,
       percentage: quiz.percentage,
       timeCompleted: quiz.timeCompleted
     }));
