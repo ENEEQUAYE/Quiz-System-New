@@ -29,28 +29,6 @@
             padding-bottom: 15px;
             border-bottom: 1px solid #eee;
         }
-        .timer {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #042954;
-            padding: 8px 15px;
-            border-radius: 5px;
-            background-color: #f8f9fa;
-        }
-        .timer.warning {
-            color: #ffc107;
-            background-color: #fff8e1;
-        }
-        .timer.danger {
-            color: #dc3545;
-            background-color: #ffebee;
-            animation: pulse 1s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
         .question-container {
             margin-bottom: 30px;
             padding: 20px;
@@ -266,9 +244,6 @@
                 flex-direction: column;
                 align-items: flex-start;
             }
-            .timer {
-                margin-top: 10px;
-            }
             .question-navigation {
                 justify-content: flex-start;
             }
@@ -282,7 +257,6 @@
         <div class="quiz-container">
             <div class="quiz-header">
                 <h2 id="quiz-title">Quiz Title</h2>
-                <div class="timer" id="timer">Time: 00:00</div>
             </div>
             
             <div class="quiz-info" id="quiz-info">
@@ -417,16 +391,11 @@
             let currentQuestionIndex = 0;
             let answers = [];
             let flaggedQuestions = [];
-            let timeLeft = 0;
-            let timerInterval = null;
             let resultData = null;
             let quizStartTime; // Add this at the top of the script
             let sessionSaveInterval = null;
             let lastSaveTime = 0;
             const SAVE_INTERVAL = 10000; // Save every 10 seconds
-            const BACKGROUND_CHECK_INTERVAL = 5000; // Check if we're back every 5 seconds
-            let backgroundCheckInterval = null;
-            let originalTimeLimit = 0;
             
             // Bootstrap modals
             const resultModal = new bootstrap.Modal(document.getElementById("resultModal"));
@@ -454,8 +423,7 @@
                         }
             
                         quiz = data.data;
-                        originalTimeLimit = quiz.timeLimit * 60; // Store original time limit
-            
+
                         // Check for existing session
                         return fetch(`${API_URL}/quizzes/${quizId}/session`, {
                             headers: {
@@ -500,11 +468,6 @@
                 document.getElementById("quiz-total-questions").textContent = quiz.questions.length;
                 document.getElementById("quiz-passing-score").textContent = `${quiz.passingScore || 70}%`;
 
-                // Initialize timer
-                timeLeft = originalTimeLimit;
-                updateTimer();
-                startTimer();
-
                 // Initialize answers array
                 answers = new Array(quiz.questions.length).fill(null);
                 flaggedQuestions = new Array(quiz.questions.length).fill(false);
@@ -533,20 +496,11 @@
                 currentQuestionIndex = session.currentQuestionIndex || 0;
                 quizStartTime = session.quizStartTime;
 
-                // Calculate remaining time
-                const sessionTime = Date.now() - new Date(session.updatedAt).getTime();
-                const sessionTimeInSeconds = Math.floor(sessionTime / 1000);
-                timeLeft = Math.max(0, (session.timeLeft || originalTimeLimit) - sessionTimeInSeconds);
-
                 // Initialize quiz UI
                 document.getElementById("quiz-title").textContent = quiz.title;
                 document.getElementById("quiz-subject").textContent = quiz.subject || "General";
                 document.getElementById("quiz-total-questions").textContent = quiz.questions.length;
                 document.getElementById("quiz-passing-score").textContent = `${quiz.passingScore || 70}%`;
-
-                // Start timer
-                updateTimer();
-                startTimer();
 
                 // Update progress
                 updateProgress();
@@ -562,19 +516,6 @@
 
                 // Show toast that session was resumed
                 showToast("Quiz session resumed from where you left off", "info");
-
-                // Check if time has expired while away
-                if (timeLeft <= 0) {
-                    showToast("Time expired! Auto-submitting your quiz...", "warning");
-                    setTimeout(() => {
-                        autoSubmitQuiz();
-                    }, 1000);
-                }
-            }
-
-            function startTimer() {
-                if (timerInterval) clearInterval(timerInterval);
-                timerInterval = setInterval(updateTimer, 1000);
             }
 
             function startSessionSaving() {
@@ -594,7 +535,6 @@
                     answers,
                     flaggedQuestions,
                     currentQuestionIndex,
-                    timeLeft,
                     quizStartTime
                 };
 
@@ -627,80 +567,9 @@
                     clearInterval(sessionSaveInterval);
                     sessionSaveInterval = null;
                 }
-                if (backgroundCheckInterval) {
-                    clearInterval(backgroundCheckInterval);
-                    backgroundCheckInterval = null;
-                }
-            }
-
-            function autoSubmitQuiz() {
-                clearInterval(timerInterval);
-                showLoading("Auto-submitting your quiz...");
-
-                fetch(`${API_URL}/quizzes/${quizId}/auto-submit`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    hideLoading();
-
-                    if (!data.success) {
-                        throw new Error(data.error || "Failed to auto-submit quiz");
-                    }
-
-                    // Clear session and intervals
-                    clearQuizSession();
-
-                    // Store result data
-                    resultData = data.data;
-
-                    // Show results
-                    showResults(resultData);
-                })
-                .catch(error => {
-                    hideLoading();
-                    console.error("Error auto-submitting quiz:", error);
-                    showToast("Failed to auto-submit quiz: " + error.message, "danger");
-                });
             }
 
 
-            function updateTimer() {
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    showToast("Time's up! Auto-submitting your quiz...", "warning");
-                    setTimeout(() => {
-                        autoSubmitQuiz();
-                    }, 1000);
-                    return;
-                }
-                
-                timeLeft--;
-                
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                
-                const timerElement = document.getElementById("timer");
-                timerElement.textContent = `Time: ${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-                
-                // Add warning classes
-                if (timeLeft < 60) {
-                    timerElement.classList.add("danger");
-                    timerElement.classList.remove("warning");
-                } else if (timeLeft < 300) {
-                    timerElement.classList.add("warning");
-                    timerElement.classList.remove("danger");
-                }
-            }
             
             function updateProgress() {
                 const answeredCount = answers.filter(answer => answer !== null).length;
@@ -873,7 +742,6 @@
            
             
             function submitQuiz() {
-                clearInterval(timerInterval);
                 showLoading("Submitting your quiz...");
             
                 // Prepare submission data
@@ -1011,13 +879,6 @@
                             : 'You did not pass this quiz. You may be able to retake it later.'}
                     </div>
                     
-                    ${results.autoSubmitted ? `
-                        <div class="alert alert-info mt-3">
-                            <i class="fas fa-clock me-2"></i>
-                            This quiz was automatically submitted because the time limit was reached.
-                        </div>
-                    ` : ''}
-                    
                     <p class="text-center mt-3">
                         Click "View Detailed Results" to see a breakdown of your answers and explanations.
                     </p>
@@ -1124,36 +985,6 @@
                     event.preventDefault();
                     event.returnValue = "You have an unfinished quiz. Are you sure you want to leave?";
                     return event.returnValue;
-                }
-            });
-
-            // Handle visibility change to manage timer when user leaves/returns
-            document.addEventListener("visibilitychange", () => {
-                if (quiz && !resultData) {
-                    if (document.hidden) {
-                        // User left the page - save session and note the time
-                        saveQuizSession();
-                        localStorage.setItem(`quiz_${quizId}_hidden_time`, Date.now().toString());
-                    } else {
-                        // User returned - check if time expired while away
-                        const hiddenTime = localStorage.getItem(`quiz_${quizId}_hidden_time`);
-                        if (hiddenTime) {
-                            const timeAway = Math.floor((Date.now() - parseInt(hiddenTime)) / 1000);
-                            timeLeft = Math.max(0, timeLeft - timeAway);
-                            
-                            if (timeLeft <= 0) {
-                                showToast("Time expired while you were away! Auto-submitting your quiz...", "warning");
-                                setTimeout(() => {
-                                    autoSubmitQuiz();
-                                }, 1000);
-                            } else {
-                                updateTimer();
-                                showToast(`Welcome back! ${Math.floor(timeAway / 60)}m ${timeAway % 60}s passed while you were away.`, "info");
-                            }
-                            
-                            localStorage.removeItem(`quiz_${quizId}_hidden_time`);
-                        }
-                    }
                 }
             });
 
