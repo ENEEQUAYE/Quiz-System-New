@@ -167,15 +167,34 @@ function updateHeaderCounts() {
     fetch(`${API_URL}/admin/notifications/count`, {
         headers: { Authorization: `Bearer ${token}` }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            if (response.status === 401) {
+                console.error("Authentication failed for notification count");
+                window.location.href = "index.html";
+                return Promise.reject("Authentication failed");
+            }
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             if (elements.header.notificationCount) {
-                elements.header.notificationCount.textContent = data.count || "0";
+                const count = data.count || 0;
+                elements.header.notificationCount.textContent = count;
+                // Hide badge if no notifications
+                elements.header.notificationCount.style.display = count > 0 ? 'inline' : 'none';
             }
         }
     })
-    .catch(error => console.error("Error loading notification count:", error));
+    .catch(error => {
+        console.error("Error loading notification count:", error);
+        if (elements.header.notificationCount) {
+            elements.header.notificationCount.textContent = "!";
+            elements.header.notificationCount.style.display = 'inline';
+        }
+    });
 }
 
 function loadMessagesDropdown() {
@@ -206,24 +225,70 @@ function loadNotificationsDropdown() {
     fetch(`${API_URL}/admin/notifications`, {
         headers: { Authorization: `Bearer ${token}` }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            if (response.status === 401) {
+                console.error("Authentication failed for notifications");
+                window.location.href = "index.html";
+                return Promise.reject("Authentication failed");
+            }
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
         const notificationsContent = document.getElementById("notifications-dropdown-content");
         if (notificationsContent) {
             if (data.success && data.notifications?.length > 0) {
                 notificationsContent.innerHTML = data.notifications.slice(0, 5).map(notification => `
-                    <div class="notification-item p-2 border-bottom ${notification.isRead ? "" : "unread"}">
+                    <div class="notification-item p-2 border-bottom ${notification.isRead ? "" : "unread"}" 
+                         data-notification-id="${notification._id}"
+                         style="cursor: pointer;">
                         <div class="notification-title fw-bold">${notification.title}</div>
                         <div class="notification-preview text-truncate">${notification.message}</div>
                         <div class="notification-time small text-muted">${formatTimeAgo(notification.createdAt)}</div>
                     </div>
                 `).join("");
+                
+                // Add click handlers to mark notifications as read
+                notificationsContent.querySelectorAll('.notification-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        const notificationId = e.currentTarget.dataset.notificationId;
+                        markNotificationAsRead(notificationId);
+                        e.currentTarget.classList.remove('unread');
+                    });
+                });
             } else {
                 notificationsContent.innerHTML = '<div class="text-center text-muted py-3">No new notifications</div>';
             }
         }
     })
-    .catch(error => console.error("Error loading notifications:", error));
+    .catch(error => {
+        console.error("Error loading notifications:", error);
+        const notificationsContent = document.getElementById("notifications-dropdown-content");
+        if (notificationsContent) {
+            notificationsContent.innerHTML = '<div class="text-center text-danger py-3">Failed to load notifications</div>';
+        }
+    });
+}
+
+function markNotificationAsRead(notificationId) {
+    fetch(`${API_URL}/admin/notifications/mark-read`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ notificationIds: [notificationId] })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the notification count
+            updateHeaderCounts();
+        }
+    })
+    .catch(error => console.error("Error marking notification as read:", error));
 }
 
 function setupUserDropdown() {
@@ -251,6 +316,9 @@ function setupUserDropdown() {
   loadMessagesDropdown();
   loadNotificationsDropdown();
   setupLogoutButton();
+
+  // Create a test notification for debugging (remove this in production)
+  // createTestNotification();
 
   // Optionally, refresh messages and notifications periodically
   setInterval(loadMessagesDropdown, 60000); // Refresh messages every 60 seconds

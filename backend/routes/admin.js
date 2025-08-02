@@ -906,7 +906,7 @@ router.get('/activities', [
 });
 
 // Get Notifications
-router.get("/notifications", async (req, res) => {
+router.get("/notifications", auth, async (req, res) => {
   try {
     const notifications = await Notification.find({ user: req.user._id })
       .sort({ createdAt: -1 })
@@ -918,7 +918,7 @@ router.get("/notifications", async (req, res) => {
 });
 
 // Get Notification Count
-router.get("/notifications/count", async (req, res) => {
+router.get("/notifications/count", auth, async (req, res) => {
   try {
     const count = await Notification.countDocuments({ user: req.user._id, isRead: false });
     res.json({ success: true, count });
@@ -928,7 +928,7 @@ router.get("/notifications/count", async (req, res) => {
 });
 
 // Mark notifications as read
-router.post("/notifications/mark-read", async (req, res) => {
+router.post("/notifications/mark-read", auth, async (req, res) => {
   try {
     const { notificationIds } = req.body;
     await Notification.markAsRead(req.user._id, notificationIds);
