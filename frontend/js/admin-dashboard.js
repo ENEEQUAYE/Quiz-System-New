@@ -164,6 +164,15 @@ function updateTime() {
 }
 
 function updateHeaderCounts() {
+    // Check if elements exist first
+    const notificationElement = document.getElementById("notification-count");
+    const messageElement = document.getElementById("message-count");
+    
+    if (!notificationElement) {
+        console.error("Notification count element not found!");
+        return;
+    }
+    
     fetch(`${API_URL}/admin/notifications/count`, {
         headers: { Authorization: `Bearer ${token}` }
     })
@@ -179,20 +188,29 @@ function updateHeaderCounts() {
         return response.json();
     })
     .then(data => {
+        console.log("Notification count API response:", data); // Debug line
         if (data.success) {
-            if (elements.header.notificationCount) {
+            const notificationElement = document.getElementById("notification-count");
+            if (notificationElement) {
                 const count = data.count || 0;
-                elements.header.notificationCount.textContent = count;
-                // Hide badge if no notifications
-                elements.header.notificationCount.style.display = count > 0 ? 'inline' : 'none';
+                console.log("Setting notification count to:", count); // Debug line
+                notificationElement.textContent = count;
+                // Always show badge for debugging - change this later
+                notificationElement.style.display = 'inline';
+                console.log("Badge should now be visible with count:", count);
+            } else {
+                console.log("Notification count element not found in then block"); // Debug line
             }
+        } else {
+            console.log("API response not successful:", data);
         }
     })
     .catch(error => {
         console.error("Error loading notification count:", error);
-        if (elements.header.notificationCount) {
-            elements.header.notificationCount.textContent = "!";
-            elements.header.notificationCount.style.display = 'inline';
+        const notificationElement = document.getElementById("notification-count");
+        if (notificationElement) {
+            notificationElement.textContent = "!";
+            notificationElement.style.display = 'inline';
         }
     });
 }
@@ -635,7 +653,6 @@ window.setupModalFormHandlers = function() {
           });
   
           const data = await response.json();
-          console.log("API Response:", data);
   
           if (data.success && data.questions) {
               // Automatically switch to the Create Quiz menu
@@ -1154,7 +1171,6 @@ function addOption(questionItem, uniqueId) {
 
         // Populate table with student data
         data.data.forEach((student) => {
-            console.log(student);
             const row = document.createElement("tr");
             row.innerHTML = `
                 <td>${student.firstName} ${student.lastName}</td>
@@ -1467,13 +1483,11 @@ function loadQuizzes(page = 1, search = "") {
     ////////////////////////// Load Messages //////////////////////////
     function loadMessages() {
         //// to be implemented
-        console.log("Loading messages...")
     }
 
     ////////////////////////// Load Settings //////////////////////////
     function loadSettings() {
         //// to be implemented
-        console.log("Loading settings...")
     }
            
 
