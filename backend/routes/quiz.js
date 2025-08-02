@@ -253,7 +253,7 @@ router.post('/:id/auto-submit', [
 
     const answerDetails = quiz.questions.map((question, index) => {
       const selectedOption = answers[index];
-      const isCorrect = selectedOption === question.correctAnswer;
+      const isCorrect = selectedOption !== -1 && selectedOption !== null && selectedOption !== undefined && selectedOption === question.correctAnswer;
 
       if (selectedOption === -1 || selectedOption === null || selectedOption === undefined) {
         unansweredQuestions++;
@@ -373,7 +373,7 @@ router.post('/:id/submit', [
 
     const answerDetails = quiz.questions.map((question, index) => {
       const selectedOption = answers[index];
-      const isCorrect = selectedOption === question.correctAnswer;
+      const isCorrect = selectedOption !== -1 && selectedOption === question.correctAnswer;
 
       if (selectedOption === -1) {
         unansweredQuestions++;

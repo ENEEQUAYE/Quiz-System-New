@@ -16,7 +16,7 @@ const AnswerSchema = new mongoose.Schema({
   selectedOption: { 
     type: Number, 
     required: [true, 'Selected option is required'],
-    min: [0, 'Selected option index cannot be negative']
+    min: [-1, 'Selected option index cannot be less than -1 (use -1 for unanswered)']
   },
   correctAnswer: {
     type: Number,
