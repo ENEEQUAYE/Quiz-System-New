@@ -522,6 +522,11 @@ function setupComposeModal() {
 }
 
 function setupFormHandlers() {
+    // Non-modal form handlers can stay here if needed
+}
+
+// Global function for modal form handlers (called after modals are loaded)
+window.setupModalFormHandlers = function() {
     const createAdminForm = document.getElementById("create-admin-form");
     if (createAdminForm) {
         createAdminForm.addEventListener("submit", handleCreateAdminFormSubmit);
@@ -536,7 +541,7 @@ function setupFormHandlers() {
             }
         });
     }
-}
+};
 
   async function handleUploadAndExtractQuestions(event) {
       event.preventDefault();
@@ -661,27 +666,6 @@ function setupFormHandlers() {
       });
   }
 
-  function setupFormHandlers() {
-
-    //create administrator form
-    const createAdminForm = document.getElementById("create-admin-form")
-    if (createAdminForm) {
-      createAdminForm.addEventListener("submit", handleCreateAdminFormSubmit)
-    }
-
-     // Add event listener for the create admin button
-     const addAdminBtn = document.getElementById("add-administrator-btn")
-     if (addAdminBtn) {
-       addAdminBtn.addEventListener("click", () => {
-         // Reset the form when opening the modal
-         const createAdminForm = document.getElementById("create-admin-form")
-         if (createAdminForm) {
-           createAdminForm.reset()
-         }
-       })
-     }
-  }
-
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   function setupSearchHandlers() {
     // Search input for students
@@ -791,6 +775,13 @@ function handleCreateAdminFormSubmit(e) {
     return;
   }
 
+  // Check if user is authenticated
+  if (!token) {
+    showToast("Authentication required. Please log in again.", "danger");
+    window.location.href = "index.html";
+    return;
+  }
+
   // Send data to the backend
   fetch(`${API_URL}/users/admin`, {
     method: "POST",
@@ -800,7 +791,22 @@ function handleCreateAdminFormSubmit(e) {
     },
     body: JSON.stringify(formData),
   })
-    .then((response) => response.json())
+    .then((response) => {
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication failed. Please log in again.");
+        } else if (response.status === 403) {
+          throw new Error("Access denied. Admin privileges required.");
+        } else if (response.status === 400) {
+          return response.json().then(data => {
+            throw new Error(data.error || "Invalid data provided");
+          });
+        } else {
+          throw new Error(`Server error: ${response.status}`);
+        }
+      }
+      return response.json();
+    })
     .then((data) => {
       if (data.success) {
         const modal = bootstrap.Modal.getInstance(document.getElementById("createAdminModal"));
@@ -813,8 +819,12 @@ function handleCreateAdminFormSubmit(e) {
       }
     })
     .catch((error) => {
-      console.error(error);
-      showToast(error.message || "Failed to create administrator", "danger");
+      console.error("Create admin error:", error);
+      if (error.message.includes("Authentication failed")) {
+        window.location.href = "index.html";
+      } else {
+        showToast(error.message || "Failed to create administrator", "danger");
+      }
     });
 }
 

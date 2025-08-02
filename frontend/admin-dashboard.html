@@ -795,6 +795,10 @@
           .then(response => response.text())
           .then(html => {
             document.getElementById('modals-container').innerHTML = html;
+            // Set up form handlers after modals are loaded
+            if (window.setupModalFormHandlers) {
+              window.setupModalFormHandlers();
+            }
           })
           .catch(error => console.error('Error loading modals:', error));
       });
