@@ -11,7 +11,7 @@
 /* Body Styling */
 body {
     background: linear-gradient(rgba(4, 41, 84, 0.8), rgba(4, 41, 84, 0.8)), 
-                url('../img/logo.png') center/cover no-repeat;
+                url('../img/company logo.png') center/cover no-repeat;
     color: var(--text-color);
     min-height: 100vh;
     display: flex;
