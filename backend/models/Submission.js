@@ -39,7 +39,6 @@ const AnswerSchema = new mongoose.Schema({
   timeSpent: {  // in seconds
     type: Number,
     min: [0, 'Time spent cannot be negative'],
-    max: [36000, 'Time spent cannot exceed 10 hours']
   },
   questionType: {
     type: String,
@@ -119,7 +118,6 @@ const SubmissionSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Duration is required'],
     min: [0, 'Duration cannot be negative'],
-    max: [36000, 'Duration cannot exceed 10 hours']
   },
   ipAddress: {
     type: String,
