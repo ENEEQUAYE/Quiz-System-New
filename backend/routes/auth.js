@@ -17,19 +17,9 @@ router.post('/register', async (req, res) => {
       await user.save();
     }
 
-    // If student, send email to admin for approval
-    if (user.role === 'student') {
-      // Find all admins
-      const admins = await User.find({ role: 'admin', status: 'active' });
-      for (const admin of admins) {
-        await require('../utils/mailer').sendMail({
-          to: admin.email,
-          subject: 'New Student Registration Pending Approval',
-          text: `A new student (${user.firstName} ${user.lastName}, ${user.email}) has registered and is awaiting approval.`,
-          html: `<p>A new student <b>${user.firstName} ${user.lastName}</b> (<a href="mailto:${user.email}">${user.email}</a>) has registered and is awaiting approval.</p>`
-        });
-      }
-    }
+    // If student, record that admins should be notified (email disabled)
+    // Email sending was removed to avoid SMTP issues on hosting platforms.
+    // You can review admin notifications in the admin dashboard instead.
 
     const token = await user.generateAuthToken();
     res.status(201).json({ user, token });

@@ -15,7 +15,7 @@ const ActivityLog = require('../models/ActivityLog');
 const Notification = require('../models/Notification');
 const Message = require('../models/Message');
 
-const { sendMail } = require('../utils/mailer');
+// Email functionality removed - mailer disabled to avoid SMTP issues on hosting
 
 // Configure multer for file uploads
 const upload = multer({ dest: "uploads/" });
@@ -114,15 +114,7 @@ router.patch('/approvals/:id', [
         : 'Your account registration was rejected. Please contact support for more information.'
     });
 
-    // Send email to student if approved
-    if (req.body.status === 'active') {
-      await require('../utils/mailer').sendMail({
-        to: student.email,
-        subject: 'Your Account Has Been Approved',
-        text: `Hello ${student.firstName}, your account has been approved. You can now log in and access the system.`,
-        html: `<p>Hello <b>${student.firstName}</b>,<br>Your account has been approved. You can now <a href="${process.env.FRONTEND_URL || '#'}">log in</a> and access the system.</p>`
-      });
-    }
+    // Email sending removed. Admins can view approval status in the dashboard.
 
     res.json({
       success: true,
