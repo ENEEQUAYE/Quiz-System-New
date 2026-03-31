@@ -5,6 +5,8 @@ const multer = require("multer");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 const fs = require("fs");
+const path = require("path");
+const os = require("os");
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/role');
 const { check, validationResult } = require('express-validator');
@@ -17,8 +19,25 @@ const Message = require('../models/Message');
 
 // Email functionality removed - mailer disabled to avoid SMTP issues on hosting
 
-// Configure multer for file uploads
-const upload = multer({ dest: "uploads/" });
+// Configure multer for file uploads.
+// Vercel filesystem is read-only except /tmp, so pick destination at request time.
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    try {
+      const isServerless = !!process.env.VERCEL;
+      const uploadDir = isServerless
+        ? path.join(os.tmpdir(), "uploads")
+        : path.join(process.cwd(), "uploads");
+
+      fs.mkdirSync(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    } catch (error) {
+      cb(error);
+    }
+  }
+});
+
+const upload = multer({ storage });
 
 // Apply auth and admin role middleware to all routes
 router.use(auth);
@@ -219,7 +238,9 @@ router.post("/quizzes/upload", upload.single("file"), async (req, res) => {
     const questions = extractQuestionsFromText(text);
 
     // Clean up uploaded file
-    fs.unlinkSync(file.path);
+    if (file.path && fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
 
     res.json({ success: true, questions });
   } catch (error) {
