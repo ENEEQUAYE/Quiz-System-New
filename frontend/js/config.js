@@ -1,22 +1,74 @@
-// Environment Configuration
-// Change this to switch between local development and production
+// Auto environment configuration.
+// Priority:
+// 1) ?apiBaseUrl=<url> query param (saved to localStorage)
+// 2) localStorage.API_BASE_URL
+// 3) Local hosts/file protocol -> localhost backend
+// 4) Deployed hosts -> Vercel backend
 
-const ENVIRONMENT = 'production'; // Change to 'development' for local testing
+const LOCAL_API_URL = 'http://localhost:5000/api';
+const LOCAL_WS_URL = 'ws://localhost:5000';
+const DEPLOYED_API_URL = 'https://quiz-system-new.vercel.app/api';
+const DEPLOYED_WS_URL = 'wss://quiz-system-new.vercel.app';
 
-const CONFIG = {
-    development: {
-        API_URL: 'http://localhost:5000/api',
-        WS_URL: 'ws://localhost:5000'
-    },
-    production: {
-        API_URL: 'https://quiz-system-new.onrender.com/api',
-        WS_URL: 'wss://quiz-system-new.onrender.com'
+function normalizeBaseUrl(url) {
+    if (!url || typeof url !== 'string') return null;
+    return url.endsWith('/') ? url.slice(0, -1) : url;
+}
+
+function readApiOverride() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const queryOverride = normalizeBaseUrl(params.get('apiBaseUrl'));
+
+        if (queryOverride) {
+            localStorage.setItem('API_BASE_URL', queryOverride);
+            return queryOverride;
+        }
+
+        return normalizeBaseUrl(localStorage.getItem('API_BASE_URL'));
+    } catch (error) {
+        return null;
     }
-};
+}
 
-// Export the current environment's configuration
-const API_URL = CONFIG[ENVIRONMENT].API_URL;
-const WS_URL = CONFIG[ENVIRONMENT].WS_URL;
+function detectEnvironment() {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
 
-console.log(`Running in ${ENVIRONMENT} mode`);
-console.log(`API URL: ${API_URL}`);
+    const isLocalhost =
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '::1';
+
+    const isFileProtocol = protocol === 'file:';
+
+    return isLocalhost || isFileProtocol ? 'development' : 'production';
+}
+
+function toWsUrl(apiBaseUrl) {
+    if (!apiBaseUrl) return null;
+
+    const origin = apiBaseUrl.replace(/\/api$/, '');
+
+    if (origin.startsWith('https://')) {
+        return origin.replace('https://', 'wss://');
+    }
+
+    if (origin.startsWith('http://')) {
+        return origin.replace('http://', 'ws://');
+    }
+
+    return null;
+}
+
+const ENVIRONMENT = detectEnvironment();
+const overrideApiUrl = readApiOverride();
+
+const API_URL = overrideApiUrl || (ENVIRONMENT === 'development' ? LOCAL_API_URL : DEPLOYED_API_URL);
+const WS_URL = toWsUrl(API_URL) || (ENVIRONMENT === 'development' ? LOCAL_WS_URL : DEPLOYED_WS_URL);
+
+window.API_URL = API_URL;
+window.WS_URL = WS_URL;
+
+console.log('Running in ' + ENVIRONMENT + ' mode');
+console.log('API URL: ' + API_URL);
