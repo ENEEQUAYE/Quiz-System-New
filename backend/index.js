@@ -1,16 +1,27 @@
 const app = require('./app');
 const connectDB = require('./config/db');
 
+function withTimeout(promise, timeoutMs, message) {
+  let timer;
+
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
 module.exports = async (req, res) => {
   try {
     const path = req.url || '';
     const method = req.method || '';
+    const isHealthCheck = path === '/health' || path === '/api/health' || path.endsWith('/health');
 
-    if (path === '/health' || method === 'OPTIONS') {
+    if (isHealthCheck || method === 'OPTIONS') {
       return app(req, res);
     }
 
-    await connectDB();
+    await withTimeout(connectDB(), 4500, 'Database connection timed out');
     return app(req, res);
   } catch (error) {
     console.error('Serverless function error:', {
