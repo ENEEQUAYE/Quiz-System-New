@@ -1,5 +1,18 @@
 {
   "version": 2,
   "framework": null,
-  "outputDirectory": "frontend"
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/[...route].js"
+    },
+    {
+      "source": "/",
+      "destination": "/frontend/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
+    }
+  ]
 }

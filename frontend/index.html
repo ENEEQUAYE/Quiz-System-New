@@ -98,6 +98,17 @@
     const loginError = document.getElementById("loginError");
     const registerError = document.getElementById("registerError");
 
+    async function parseResponseData(response) {
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
+        return response.json();
+      }
+
+      const text = await response.text();
+      return { error: text || `HTTP ${response.status}` };
+    }
+
     // Switch between login and register tabs
     loginTab.addEventListener("click", () => {
       loginTab.classList.add("active");
@@ -140,7 +151,7 @@
           body: JSON.stringify({ email, password })
         });
 
-        const data = await response.json();
+        const data = await parseResponseData(response);
 
         if (!response.ok) {
           throw new Error(data.error || "Login failed");
@@ -225,7 +236,7 @@
           body: JSON.stringify({ firstName, lastName, email, phone, password })
         });
   
-        const data = await response.json();
+        const data = await parseResponseData(response);
   
         console.log("Registration Response:", data);
   
