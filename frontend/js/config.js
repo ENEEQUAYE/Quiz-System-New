@@ -7,8 +7,8 @@
 
 const LOCAL_API_URL = 'http://localhost:5000/api';
 const LOCAL_WS_URL = 'ws://localhost:5000';
-const DEPLOYED_API_URL = 'https://quiz-system-new.vercel.app/api';
-const DEPLOYED_WS_URL = 'wss://quiz-system-new.vercel.app';
+const DEPLOYED_API_URL = 'https://cesstigsms.vercel.app/api';
+const DEPLOYED_WS_URL = 'wss://cesstigsms.vercel.app';
 
 function normalizeBaseUrl(url) {
     if (!url || typeof url !== 'string') return null;

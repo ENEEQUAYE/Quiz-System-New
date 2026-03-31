@@ -13,11 +13,21 @@ async function connectDB() {
   }
 
   if (!connectionPromise) {
-    connectionPromise = mongoose.connect(process.env.MONGODB_URI);
+    connectionPromise = mongoose.connect(process.env.MONGODB_URI, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 20000,
+      connectTimeoutMS: 10000
+    });
   }
 
-  cachedConnection = await connectionPromise;
-  return cachedConnection;
+  try {
+    cachedConnection = await connectionPromise;
+    return cachedConnection;
+  } catch (error) {
+    connectionPromise = null;
+    throw error;
+  }
 }
 
 module.exports = connectDB;
