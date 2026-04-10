@@ -50,6 +50,29 @@
         <button class="btn" type="submit" id="loginBtn">Sign In</button>
       </form>
 
+      <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Reset Password</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="forgotPasswordForm">
+              <div class="modal-body">
+                <div class="alert alert-danger" id="forgotPasswordError"></div>
+                <div class="alert alert-success" id="forgotPasswordSuccess"></div>
+                <label for="forgotPasswordEmail" class="form-label">Enter your account email</label>
+                <input type="email" class="form-control" id="forgotPasswordEmail" placeholder="your@email.com" required />
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="forgotPasswordBtn">Send Reset Link</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
       <!-- Register Form -->
       <form id="registerForm">
         <div class="alert alert-danger" id="registerError"></div>
@@ -79,7 +102,7 @@
     </div>
   </div>
   <style>
-    #registerForm, #registerError, #loginError, #forgotPasswordError {
+    #registerForm, #registerError, #loginError, #forgotPasswordError, #forgotPasswordSuccess {
      display: none;
    }
  </style>
@@ -97,6 +120,21 @@
     const registerBtn = document.getElementById("registerBtn");
     const loginError = document.getElementById("loginError");
     const registerError = document.getElementById("registerError");
+    const forgotPasswordLink = document.getElementById("forgotPasswordLink");
+    const forgotPasswordForm = document.getElementById("forgotPasswordForm");
+    const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
+    const forgotPasswordError = document.getElementById("forgotPasswordError");
+    const forgotPasswordSuccess = document.getElementById("forgotPasswordSuccess");
+    const forgotPasswordEmail = document.getElementById("forgotPasswordEmail");
+
+    let forgotPasswordModal;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const modalElement = document.getElementById("forgotPasswordModal");
+      if (window.bootstrap && modalElement) {
+        forgotPasswordModal = new bootstrap.Modal(modalElement);
+      }
+    });
 
     async function parseResponseData(response) {
       const contentType = response.headers.get("content-type") || "";
@@ -122,6 +160,52 @@
       loginTab.classList.remove("active");
       registerForm.style.display = "block";
       loginForm.style.display = "none";
+    });
+
+    forgotPasswordLink.addEventListener("click", function (event) {
+      event.preventDefault();
+      forgotPasswordError.style.display = "none";
+      forgotPasswordSuccess.style.display = "none";
+      forgotPasswordForm.reset();
+
+      if (forgotPasswordModal) {
+        forgotPasswordModal.show();
+      }
+    });
+
+    forgotPasswordForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      forgotPasswordBtn.disabled = true;
+      forgotPasswordBtn.innerHTML = `Sending... <span class="spinner-border spinner-border-sm"></span>`;
+      forgotPasswordError.style.display = "none";
+      forgotPasswordSuccess.style.display = "none";
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ email: forgotPasswordEmail.value })
+        });
+
+        const data = await parseResponseData(response);
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to send reset link");
+        }
+
+        forgotPasswordSuccess.textContent = data.message || "If an account exists for that email, a reset link has been sent.";
+        forgotPasswordSuccess.style.display = "block";
+      } catch (error) {
+        forgotPasswordError.textContent = error.message === "Failed to fetch"
+          ? "Unable to connect to the server. Please try again later."
+          : error.message;
+        forgotPasswordError.style.display = "block";
+      } finally {
+        forgotPasswordBtn.disabled = false;
+        forgotPasswordBtn.innerHTML = "Send Reset Link";
+      }
     });
 
     // Toggle password visibility

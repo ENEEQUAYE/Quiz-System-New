@@ -1,9 +1,11 @@
 // backend/routes/auth.js
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 // const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/authMiddleware');
+const { sendMail } = require('../utils/mailer');
 
 // Register
 router.post('/register', async (req, res) => {
@@ -67,6 +69,89 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error(error); // Log the error
     res.status(400).json(error);
+  }
+});
+
+// Forgot password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Always return a generic response to prevent account enumeration.
+    const genericResponse = {
+      message: 'If an account exists for that email, a reset link has been sent.'
+    };
+
+    if (!user) {
+      return res.json(genericResponse);
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 1000 * 60 * 15; // 15 minutes
+    await user.save();
+
+    const frontendBase = (process.env.FRONTEND_URL || req.headers.origin || '').replace(/\/$/, '');
+    const resetUrl = `${frontendBase || 'http://localhost:5502'}/reset-password.html?token=${resetToken}`;
+
+    await sendMail({
+      to: user.email,
+      subject: 'Password Reset Request',
+      text: `You requested a password reset. Use this link to reset your password: ${resetUrl}. This link expires in 15 minutes.`,
+      html: `
+        <p>You requested a password reset.</p>
+        <p><a href="${resetUrl}">Click here to reset your password</a></p>
+        <p>This link expires in 15 minutes.</p>
+      `
+    });
+
+    return res.json(genericResponse);
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({ error: 'Failed to process password reset request' });
+  }
+});
+
+// Reset password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    return res.json({ message: 'Password has been reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 
