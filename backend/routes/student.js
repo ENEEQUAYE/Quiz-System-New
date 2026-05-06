@@ -76,8 +76,9 @@ router.get("/dashboard", async (req, res) => {
  */
 router.get("/quizzes", async (req, res) => {
   try {
-    const { page = 1, search = "" } = req.query;
-    const limit = 10;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const search = req.query.search || "";
     const skip = (page - 1) * limit;
 
     // Fetch the student's assigned quizzes
@@ -90,6 +91,8 @@ router.get("/quizzes", async (req, res) => {
     if (search) {
       filter.title = { $regex: search, $options: "i" }; // Add search functionality
     }
+
+    const total = await Quiz.countDocuments(filter);
 
     const quizzes = await Quiz.find(filter)
       .sort({ order: 1 })
@@ -119,14 +122,14 @@ router.get("/quizzes", async (req, res) => {
       attempts: attemptsMap[quiz._id] || 0, // Default to 0 if no attempts
     }));
 
-    const total = await Quiz.countDocuments(filter);
-
     res.json({
       success: true,
       quizzes: quizzesWithDetails,
       pagination: {
-        page: parseInt(page, 10),
-        totalPages: Math.ceil(total / limit),
+        page,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+        total,
+        limit,
       },
     });
   } catch (error) {

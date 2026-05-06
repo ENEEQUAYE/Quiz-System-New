@@ -677,18 +677,6 @@ footer{
 .pagination {
     margin-top: 20px;
     margin-bottom: 20px;
-}
-.page-item {
-    color: #000;
-    border: none;
-    padding: 10px 15px;
-    cursor: pointer;
-    border-radius: 4px;
-    margin: 0 5px;
-}
-.pagination {
-    margin-top: 20px;
-    margin-bottom: 20px;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -700,9 +688,9 @@ footer{
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid #d1d5db;
-    background-color: #ffffff;
-    color: #111827;
+    border: 1px solid #1d4ed8;
+    background-color: #1d4ed8;
+    color: #ffffff;
     padding: 0 14px;
     border-radius: 9999px;
     font-size: 0.95rem;
@@ -711,10 +699,19 @@ footer{
     cursor: pointer;
 }
 .pagination .page-item:hover:not(:disabled) {
-    background-color: #eef2ff;
-    border-color: #c7d2fe;
-    color: #1d4ed8;
+    background-color: #1e40af;
+    border-color: #1e40af;
+    color: #ffffff;
     transform: translateY(-1px);
+}
+.pagination .page-item.page-num {
+    min-width: auto;
+    padding: 0 12px;
+    background-color: transparent;
+    border-color: transparent;
+    color: #6b7280;
+    font-weight: 500;
+    cursor: default;
 }
 .pagination .page-item:disabled {
     background-color: #f3f4f6;
@@ -723,8 +720,7 @@ footer{
     cursor: not-allowed;
     opacity: 0.8;
 }
-.pagination .page-item.active,
-.pagination .page-item.page-num {
+.pagination .page-item.active {
     background-color: #1d4ed8;
     border-color: #1d4ed8;
     color: #ffffff;
@@ -746,6 +742,7 @@ footer{
 .page-size label {
     font-size: 0.95rem;
     color: #374151;
+    text-wrap: nowrap;
 }
 .page-size select {
     width: 90px;
