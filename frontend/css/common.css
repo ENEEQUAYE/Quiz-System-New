@@ -742,6 +742,8 @@ footer{
 .page-size label {
     font-size: 0.95rem;
     color: #374151;
+    display: inline-block;
+    margin-right: 0.5rem;
     text-wrap: nowrap;
 }
 .page-size select {
