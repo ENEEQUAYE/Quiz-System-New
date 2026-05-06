@@ -699,10 +699,20 @@ function debounce(func, wait) {
     // ========== PAGINATION HANDLERS ==========
     function setupPaginationHandlers() {
         // Pagination buttons for quizzes
-        setupPaginationForSection("quizzes", loadQuizzes)
+        setupPaginationForSection("quizzes", (page) => {
+            const searchTerm = document.getElementById("search-quizzes")?.value.trim() || "";
+            loadQuizzes(page, searchTerm);
+        });
 
         // Pagination buttons for gradebook
-        setupPaginationForSection("gradebook", loadGradebook)
+        setupPaginationForSection("gradebook", loadGradebook);
+
+        // Pagination buttons for messages
+        setupPaginationForSection("messages", (page) => {
+            const searchTerm = document.getElementById("search-messages")?.value.trim() || "";
+            const activeFolder = document.querySelector(".messages-folders .folder.active")?.dataset.folder || "inbox";
+            loadMessages(page, searchTerm, activeFolder);
+        });
     }
 
     function setupPaginationForSection(section, loadFunction) {
@@ -862,7 +872,7 @@ function loadQuizzes(page = 1, search = "") {
         });
 }
 
-    function loadGradebook() {
+    function loadGradebook(page = 1) {
         const gradebookTableBody = document.getElementById("gradebook-table-body");
         const cummulatedScoreElement = document.getElementById("cummulated-score");
         const gradeElement = document.getElementById("grade");
@@ -872,7 +882,7 @@ function loadQuizzes(page = 1, search = "") {
         // Show loading state
         gradebookTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Loading...</td></tr>';
     
-        fetch(`${API_URL}/students/gradebook`, {
+        fetch(`${API_URL}/students/gradebook?page=${page}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -886,6 +896,7 @@ function loadQuizzes(page = 1, search = "") {
                         gradebookTableBody.innerHTML = '<tr><td colspan="6" class="text-center">No grades available</td></tr>';
                         cummulatedScoreElement.textContent = "0%";
                         gradeElement.textContent = "N/A";
+                        updatePagination("gradebook", data.pagination || { page, totalPages: 1 });
                         return;
                     }
     
@@ -895,7 +906,7 @@ function loadQuizzes(page = 1, search = "") {
                     data.gradebook.forEach((entry, index) => {
                         const row = document.createElement("tr");
                         row.innerHTML = `
-                            <td>${index + 1}</td>
+                            <td>${(page - 1) * 10 + index + 1}</td>
                             <td>${entry.quizTitle}</td>
                             <td>${entry.highestScore}/${entry.totalPossible}</td>
                             <td>${entry.percentage}%</td>
@@ -919,6 +930,7 @@ function loadQuizzes(page = 1, search = "") {
                     else if (cummulatedScore >= 70) grade = "C";
     
                     gradeElement.textContent = grade;
+                    updatePagination("gradebook", data.pagination || { page, totalPages: 1 });
                 } else {
                     gradebookTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load gradebook</td></tr>';
                     cummulatedScoreElement.textContent = "0%";

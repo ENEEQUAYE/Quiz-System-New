@@ -144,6 +144,17 @@ router.get("/quizzes", async (req, res) => {
 router.get("/gradebook", async (req, res) => {
   try {
     const studentId = req.user._id;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+
+    // Count distinct quizzes in the gradebook
+    const totalCountResult = await Submission.aggregate([
+      { $match: { student: studentId } },
+      { $group: { _id: "$quiz" } },
+      { $count: "count" },
+    ]);
+    const total = totalCountResult[0]?.count || 0;
 
     // Use aggregation to group submissions by quiz and get the highest score
     const gradebook = await Submission.aggregate([
@@ -186,9 +197,20 @@ router.get("/gradebook", async (req, res) => {
           },
         },
       },
+      { $sort: { quizTitle: 1 } },
+      { $skip: skip },
+      { $limit: limit },
     ]);
 
-    res.json({ success: true, gradebook });
+    res.json({
+      success: true,
+      gradebook,
+      pagination: {
+        page,
+        totalPages: Math.ceil(total / limit),
+        total,
+      },
+    });
   } catch (error) {
     console.error("Error fetching gradebook:", error);
     res.status(500).json({ success: false, error: "Failed to fetch gradebook" });
