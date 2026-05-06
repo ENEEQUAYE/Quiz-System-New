@@ -155,6 +155,7 @@ router.get("/gradebook", async (req, res) => {
       { $count: "count" },
     ]);
     const total = totalCountResult[0]?.count || 0;
+    const totalPages = total === 0 ? 1 : Math.ceil(total / limit);
 
     // Use aggregation to group submissions by quiz and get the highest score
     const gradebook = await Submission.aggregate([
@@ -202,13 +203,47 @@ router.get("/gradebook", async (req, res) => {
       { $limit: limit },
     ]);
 
+    const summaryResult = await Submission.aggregate([
+      { $match: { student: studentId } },
+      {
+        $group: {
+          _id: "$quiz",
+          percentage: { $max: "$percentage" },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          averagePercentage: { $avg: "$percentage" },
+        },
+      },
+    ]);
+
+    const averagePercentage = summaryResult[0]?.averagePercentage || 0;
+    const cumulativeScore = parseFloat(averagePercentage.toFixed(2));
+    let grade = "F";
+    if (total === 0) {
+      grade = "N/A";
+    } else if (cumulativeScore >= 90) {
+      grade = "A";
+    } else if (cumulativeScore >= 80) {
+      grade = "B";
+    } else if (cumulativeScore >= 70) {
+      grade = "C";
+    }
+
     res.json({
       success: true,
       gradebook,
+      summary: {
+        cumulativeScore,
+        grade,
+      },
       pagination: {
         page,
-        totalPages: Math.ceil(total / limit),
+        limit,
         total,
+        totalPages,
       },
     });
   } catch (error) {

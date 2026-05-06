@@ -689,6 +689,15 @@ footer{
 .page-item:hover {
     background-color: #e9ecef;
 }
+.page-info {
+    font-size: 0.95rem;
+}
+.page-size label {
+    font-size: 0.95rem;
+}
+.page-size select {
+    width: 80px;
+}
 #prev-page-btn, #next-page-btn {
     background-color: #57a7f7;
     color: #fff;
