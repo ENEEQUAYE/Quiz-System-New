@@ -515,6 +515,7 @@
                     <button class="page-item" id="resources-next-page-btn"><i class="fas fa-chevron-right"></i></button>
                 </div>
             </div>
+
             <!---------------------------------------------------------Approvals Content-------------------------------------------------------------------->
             <div class="dashboard-content" id="approvals" style="display: none;">
                 <div class="page-header d-flex justify-content-between align-items-center mb-4">
@@ -865,6 +866,35 @@
                         <input type="file" id="quiz-file" name="file" class="form-control" accept=".pdf,.docx,.txt" required>
                     </div>
                     <button type="submit" class="btn btn-primary">Upload and Extract Questions</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--Add Resource Modal-->
+<div class="modal fade" id="createResourceModal" tabindex="-1" aria-labelledby="createResourceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createResourceModalLabel">Add New Resource</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-resource-form">
+                    <div class="mb-3">
+                        <label for="resource-title" class="form-label">Title</label>
+                        <input type="text" id="resource-title" name="title" class="form-control" required maxlength="200">
+                    </div>
+                    <div class="mb-3">
+                        <label for="resource-url" class="form-label">URL</label>
+                        <input type="url" id="resource-url" name="url" class="form-control" required maxlength="2000">
+                    </div>
+                    <div class="mb-3">
+                        <label for="resource-description" class="form-label">Description</label>
+                        <textarea id="resource-description" name="description" class="form-control" rows="3" maxlength="1000"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Resource</button>
                 </form>
             </div>
         </div>
