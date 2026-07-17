@@ -16,6 +16,8 @@ const Submission = require('../models/Submission');
 const ActivityLog = require('../models/ActivityLog');
 const Notification = require('../models/Notification');
 const Message = require('../models/Message');
+const Resource = require('../models/Resource');
+
 
 // Email functionality removed - mailer disabled to avoid SMTP issues on hosting
 
@@ -1145,6 +1147,8 @@ router.get("/recipients", async (req, res) => {
 
 // Function to extract questions from text
 function extractQuestionsFromText(text) {
+    // NOTE: Existing quiz parsing helper (unchanged)
+
     const questions = [];
     const questionRegex = /\d+\.\s+(.+?)\n\s*[A|a]\.\s+(.+?)\n\s*[B|b]\.\s+(.+?)\n\s*[C|c]\.\s+(.+?)\n\s*[D|d]\.\s+(.+?)(?=\n\d+\.|\n*$)/gs;
 
@@ -1163,7 +1167,76 @@ function extractQuestionsFromText(text) {
     return questions;
 }
 
+/**
+ * @desc    Create a new resource link (admin)
+ * @route   POST /admin/resources
+ * @access  Private (Admin)
+ */
+router.post('/resources', [
+  // Resource create schema
+
+  check('title').trim().notEmpty().withMessage('Title is required').isLength({ max: 200 }),
+  check('url').trim().notEmpty().withMessage('URL is required').isURL().withMessage('Invalid URL'),
+  check('description').optional().trim().isLength({ max: 1000 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+
+  try {
+    const { title, url, description } = req.body;
+    const resource = await Resource.create({
+      title,
+      url,
+      description: description || '',
+      createdBy: req.user._id,
+    });
+
+    res.status(201).json({ success: true, data: resource });
+  } catch (error) {
+    console.error('Failed to create resource:', error);
+    res.status(500).json({ success: false, error: 'Failed to create resource' });
+  }
+});
+
+/**
+ * @desc    List resources (admin)
+ * @route   GET /admin/resources
+ * @access  Private (Admin)
+ */
+router.get('/resources', async (req, res) => {
+  try {
+    const resources = await Resource.find().sort({ createdAt: -1 }).select('title url description createdAt');
+    res.json({ success: true, resources });
+  } catch (error) {
+    console.error('Failed to list resources:', error);
+    res.status(500).json({ success: false, error: 'Failed to list resources' });
+  }
+});
+
+/**
+ * @desc    Delete resource (admin)
+ * @route   DELETE /admin/resources/:id
+ * @access  Private (Admin)
+ */
+router.delete('/resources/:id', [
+  check('id').isMongoId().withMessage('Invalid resource ID')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+
+  try {
+    const deleted = await Resource.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, error: 'Resource not found' });
+
+    res.json({ success: true, message: 'Resource deleted successfully' });
+  } catch (error) {
+    console.error('Failed to delete resource:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete resource' });
+  }
+});
+
 module.exports = router;
+
 
 
 
