@@ -55,6 +55,8 @@
         // Initialize messaging
     setupMessageEventListeners();
     setupComposeModal();
+    setupCreateResourceForm();
+
         
         // // Load messages if on messages page
         // if (document.getElementById("messages").style.display !== "none") {
@@ -433,6 +435,9 @@ function setupLogoutButton() {
               break
             case "#approvals":
               loadApprovals()
+              break
+            case "#resources":
+                loadResources()
               break
             case "#administrators":
               loadAdministrators()
@@ -1479,6 +1484,151 @@ function loadQuizzes(page = 1, search = "") {
             showToast("Failed to load profile", "danger");
         });
     }
+
+    ////////////////////////// Load Resources //////////////////////////
+    function loadResources() {
+      
+      const resourcesTableBody = document.getElementById("resources-table-body");
+      const resourcesCount = document.getElementById("resources-count");
+      const resourcesEmpty = document.getElementById("resources-empty");
+
+      // If resources section isn't present on the page, do nothing.
+      if (!resourcesTableBody || !resourcesCount) return;
+
+      // Loading state
+      resourcesTableBody.innerHTML =
+        '<tr><td colspan="6" class="text-center">Loading...</td></tr>';
+
+      fetchData(
+        `${API_URL}/admin/resources`,
+        (data) => {
+          resourcesTableBody.innerHTML = "";
+
+          const resources = data.resources || [];
+          resourcesCount.textContent = resources.length;
+
+          if (resourcesEmpty) {
+            resourcesEmpty.style.display = resources.length === 0 ? "block" : "none";
+          }
+
+          if (resources.length === 0) {
+            resourcesTableBody.innerHTML =
+              '<tr><td colspan="6" class="text-center">No resources available</td></tr>';
+            return;
+          }
+
+          resources.forEach((resource) => {
+            const createdAt = resource.createdAt ? formatDate(resource.createdAt) : "N/A";
+            const createdBy = resource.createdBy?.firstName
+              ? `${resource.createdBy.firstName} ${resource.createdBy.lastName || ""}`.trim()
+              : "N/A";
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${resource.title || ""}</td>
+              <td>
+                ${resource.url ? `<a href="${resource.url}" target="_blank" rel="noopener noreferrer">Open</a>` : "N/A"}
+              </td>
+              <td>${resource.description || ""}</td>
+              <td>${createdBy}</td>
+              <td>${createdAt}</td>
+              <td>
+                <button class="btn btn-sm btn-danger" data-id="${resource._id}" data-action="delete-resource">
+                  <i class="fas fa-trash"></i> Delete
+                </button>
+              </td>
+            `;
+            resourcesTableBody.appendChild(row);
+          });
+
+          // Delete handlers (if button exists in HTML)
+          resourcesTableBody
+            .querySelectorAll("[data-action='delete-resource']")
+            .forEach((btn) => {
+              btn.addEventListener("click", () => {
+                const id = btn.dataset.id;
+                if (!id) return;
+                if (!confirm("Are you sure you want to delete this resource?")) return;
+
+                fetch(`${API_URL}/admin/resources/${id}`, {
+                  method: "DELETE",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                })
+                  .then((response) => response.json())
+                  .then((resp) => {
+                    if (resp.success) {
+                      showToast("Resource deleted successfully", "success");
+                      loadResources();
+                    } else {
+                      throw new Error(resp.error || "Failed to delete resource");
+                    }
+                  })
+                  .catch((err) => {
+                    console.error(err);
+                    showToast("Failed to delete resource", "danger");
+                  });
+              });
+            });
+        },
+        (err) => {
+          console.error("Failed to load resources:", err);
+          resourcesTableBody.innerHTML =
+            '<tr><td colspan="6" class="text-center text-danger">Failed to load resources</td></tr>';
+          if (resourcesEmpty) resourcesEmpty.style.display = "block";
+        }
+      );
+    }
+
+    // Wire up the create-resource modal submit once.
+    function setupCreateResourceForm() {
+      const form = document.getElementById("create-resource-form");
+      if (!form) return;
+      if (form.dataset.listenerAdded === "true") return;
+      form.dataset.listenerAdded = "true";
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const title = document.getElementById("resource-title")?.value?.trim();
+        const url = document.getElementById("resource-url")?.value?.trim();
+        const description = document.getElementById("resource-description")?.value?.trim();
+
+        if (!title || !url) {
+          showToast("Title and URL are required", "warning");
+          return;
+        }
+
+        fetch(`${API_URL}/admin/resources`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title, url, description: description || "" }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              const modalEl = document.getElementById("createResourceModal");
+              const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+              modal.hide();
+              form.reset();
+              showToast("Resource added successfully", "success");
+              loadResources();
+            } else {
+              throw new Error(data.error || "Failed to add resource");
+            }
+          })
+          .catch((error) => {
+            console.error("Failed to add resource:", error);
+            showToast(error.message || "Failed to add resource", "danger");
+          });
+      });
+    }
+
 
     ////////////////////////// Load Messages //////////////////////////
     function loadMessages() {
