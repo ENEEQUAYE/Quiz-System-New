@@ -146,9 +146,16 @@ document.addEventListener("DOMContentLoaded", () => {
                         case "#profile":
                             loadProfile();
                             break;
+                        case "#resources":
+                            loadResources();
+                            break;
+                    case "#resources":
+                            loadResources();
+                            break;
                         case "#messages":
                             loadMessages();
                             break;
+
                     }
                 }
 
@@ -985,6 +992,60 @@ function loadQuizzes(page = 1, search = "", limit = getPageSize("quizzes")) {
         document.getElementById("profile-email").textContent = `Email: ${user.email}`;
         document.getElementById("profile-phone").textContent = `Phone: ${user.phone || "N/A"}`;
     }
+
+    // ========== RESOURCES ==========
+    function loadResources() {
+        const resourcesTableBody = document.getElementById("resources-table-body");
+        const resourcesCount = document.getElementById("resources-count");
+        const resourcesEmpty = document.getElementById("resources-empty");
+
+        if (!resourcesTableBody) return;
+
+        resourcesTableBody.innerHTML = "";
+        if (resourcesCount) resourcesCount.textContent = "0";
+        if (resourcesEmpty) resourcesEmpty.style.display = "none";
+
+        fetch(`${API_URL}/admin/resources`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                const resources = data.resources || [];
+
+                if (resourcesCount) resourcesCount.textContent = resources.length;
+
+                if (resources.length === 0) {
+                    if (resourcesEmpty) resourcesEmpty.style.display = "block";
+                    return;
+                }
+
+                if (resourcesEmpty) resourcesEmpty.style.display = "none";
+
+                resourcesTableBody.innerHTML = resources
+                    .map(
+                        (r) => `
+                        <tr>
+                            <td>${r.title || "N/A"}</td>
+                            <td>${r.description || ""}</td>
+                            <td>
+                                ${r.url ? `<a href="${r.url}" target="_blank" rel="noopener noreferrer">Open</a>` : "N/A"}
+                            </td>
+                        </tr>
+                    `
+                    )
+                    .join("");
+            })
+            .catch((error) => {
+                console.error("Failed to load resources:", error);
+                if (resourcesEmpty) {
+                    resourcesEmpty.style.display = "block";
+                    resourcesEmpty.textContent = "Failed to load resources.";
+                }
+            });
+    }
+
 
 
     // ========== RECENT ACTIVITIES ==========
