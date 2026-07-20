@@ -1492,8 +1492,8 @@ function loadQuizzes(page = 1, search = "") {
       const resourcesCount = document.getElementById("resources-count");
       const resourcesEmpty = document.getElementById("resources-empty");
 
-      // If resources section isn't present on the page, do nothing.
-      if (!resourcesTableBody || !resourcesCount) return;
+      // If resources table body isn't present on the page, do nothing.
+      if (!resourcesTableBody) return;
 
       // Loading state
       resourcesTableBody.innerHTML =
@@ -1505,7 +1505,7 @@ function loadQuizzes(page = 1, search = "") {
           resourcesTableBody.innerHTML = "";
 
           const resources = data.resources || [];
-          resourcesCount.textContent = resources.length;
+          if (resourcesCount) resourcesCount.textContent = resources.length;
 
           if (resourcesEmpty) {
             resourcesEmpty.style.display = resources.length === 0 ? "block" : "none";

@@ -1205,7 +1205,10 @@ router.post('/resources', [
  */
 router.get('/resources', async (req, res) => {
   try {
-    const resources = await Resource.find().sort({ createdAt: -1 }).select('title url description createdAt');
+    const resources = await Resource.find()
+      .sort({ createdAt: -1 })
+      .populate('createdBy', 'firstName lastName')
+      .select('title url description createdAt createdBy');
     res.json({ success: true, resources });
   } catch (error) {
     console.error('Failed to list resources:', error);
