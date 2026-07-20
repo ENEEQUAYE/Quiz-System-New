@@ -1533,6 +1533,9 @@ function loadQuizzes(page = 1, search = "") {
               <td>${createdBy}</td>
               <td>${createdAt}</td>
               <td>
+                <button class="btn btn-sm btn-primary me-1" data-id="${resource._id}" data-action="edit-resource">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
                 <button class="btn btn-sm btn-danger" data-id="${resource._id}" data-action="delete-resource">
                   <i class="fas fa-trash"></i> Delete
                 </button>
@@ -1541,7 +1544,7 @@ function loadQuizzes(page = 1, search = "") {
             resourcesTableBody.appendChild(row);
           });
 
-          // Delete handlers (if button exists in HTML)
+          // Delete handlers
           resourcesTableBody
             .querySelectorAll("[data-action='delete-resource']")
             .forEach((btn) => {
@@ -1572,6 +1575,39 @@ function loadQuizzes(page = 1, search = "") {
                   });
               });
             });
+
+          // Edit handlers – open modal and pre-fill with resource data
+          resourcesTableBody
+            .querySelectorAll("[data-action='edit-resource']")
+            .forEach((btn) => {
+              btn.addEventListener("click", () => {
+                const id = btn.dataset.id;
+                if (!id) return;
+
+                // Find the resource data from the row
+                const row = btn.closest("tr");
+                const cells = row.querySelectorAll("td");
+                const title = cells[0]?.textContent?.trim() || "";
+                const linkEl = cells[1]?.querySelector("a");
+                const url = linkEl ? linkEl.getAttribute("href") : "";
+                const description = cells[2]?.textContent?.trim() || "";
+
+                // Pre-fill the modal
+                document.getElementById("resource-title").value = title;
+                document.getElementById("resource-url").value = url;
+                document.getElementById("resource-description").value = description;
+
+                // Store the resource ID for the update
+                const modal = document.getElementById("createResourceModal");
+                modal.dataset.editId = id;
+                modal.querySelector(".modal-title").textContent = "Edit Resource";
+                modal.querySelector('button[type="submit"]').textContent = "Update Resource";
+
+                // Show the modal
+                const bsModal = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
+                bsModal.show();
+              });
+            });
         },
         (err) => {
           console.error("Failed to load resources:", err);
@@ -1589,6 +1625,15 @@ function loadQuizzes(page = 1, search = "") {
       if (form.dataset.listenerAdded === "true") return;
       form.dataset.listenerAdded = "true";
 
+      // Reset modal to "create" state when opened via "Add Resource" button
+      document.getElementById("add-resource-btn").addEventListener("click", () => {
+        const modal = document.getElementById("createResourceModal");
+        modal.dataset.editId = "";
+        modal.querySelector(".modal-title").textContent = "Add New Resource";
+        modal.querySelector('button[type="submit"]').textContent = "Add Resource";
+        form.reset();
+      });
+
       form.addEventListener("submit", (e) => {
         e.preventDefault();
 
@@ -1601,8 +1646,18 @@ function loadQuizzes(page = 1, search = "") {
           return;
         }
 
-        fetch(`${API_URL}/admin/resources`, {
-          method: "POST",
+        const modalEl = document.getElementById("createResourceModal");
+        const editId = modalEl.dataset.editId;
+        const isEditing = !!editId;
+
+        const fetchUrl = isEditing
+          ? `${API_URL}/admin/resources/${editId}`
+          : `${API_URL}/admin/resources`;
+        const method = isEditing ? "PUT" : "POST";
+        const successMsg = isEditing ? "Resource updated successfully" : "Resource added successfully";
+
+        fetch(fetchUrl, {
+          method,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -1612,19 +1667,21 @@ function loadQuizzes(page = 1, search = "") {
           .then((response) => response.json())
           .then((data) => {
             if (data.success) {
-              const modalEl = document.getElementById("createResourceModal");
               const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
               modal.hide();
               form.reset();
-              showToast("Resource added successfully", "success");
+              modalEl.dataset.editId = "";
+              modalEl.querySelector(".modal-title").textContent = "Add New Resource";
+              modalEl.querySelector('button[type="submit"]').textContent = "Add Resource";
+              showToast(successMsg, "success");
               loadResources();
             } else {
-              throw new Error(data.error || "Failed to add resource");
+              throw new Error(data.error || "Failed to save resource");
             }
           })
           .catch((error) => {
-            console.error("Failed to add resource:", error);
-            showToast(error.message || "Failed to add resource", "danger");
+            console.error("Failed to save resource:", error);
+            showToast(error.message || "Failed to save resource", "danger");
           });
       });
     }

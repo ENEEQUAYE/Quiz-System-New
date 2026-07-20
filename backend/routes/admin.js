@@ -1217,6 +1217,36 @@ router.get('/resources', async (req, res) => {
 });
 
 /**
+ * @desc    Update resource (admin)
+ * @route   PUT /admin/resources/:id
+ * @access  Private (Admin)
+ */
+router.put('/resources/:id', [
+  check('id').isMongoId().withMessage('Invalid resource ID'),
+  check('title').optional().trim().notEmpty().withMessage('Title is required').isLength({ max: 200 }),
+  check('url').optional().trim().notEmpty().withMessage('URL is required').isURL().withMessage('Invalid URL'),
+  check('description').optional().trim().isLength({ max: 1000 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+
+  try {
+    const updates = {};
+    if (req.body.title !== undefined) updates.title = req.body.title;
+    if (req.body.url !== undefined) updates.url = req.body.url;
+    if (req.body.description !== undefined) updates.description = req.body.description;
+
+    const resource = await Resource.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
+    if (!resource) return res.status(404).json({ success: false, error: 'Resource not found' });
+
+    res.json({ success: true, data: resource });
+  } catch (error) {
+    console.error('Failed to update resource:', error);
+    res.status(500).json({ success: false, error: 'Failed to update resource' });
+  }
+});
+
+/**
  * @desc    Delete resource (admin)
  * @route   DELETE /admin/resources/:id
  * @access  Private (Admin)

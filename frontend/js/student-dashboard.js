@@ -1005,7 +1005,7 @@ function loadQuizzes(page = 1, search = "", limit = getPageSize("quizzes")) {
         if (resourcesCount) resourcesCount.textContent = "0";
         if (resourcesEmpty) resourcesEmpty.style.display = "none";
 
-        fetch(`${API_URL}/admin/resources`, {
+        fetch(`${API_URL}/students/resources`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },

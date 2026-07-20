@@ -631,4 +631,22 @@ router.get('/submissions/:id', auth, async (req, res) => {
   }
 });
 
+/**
+ * @desc    Get all resources (visible to students)
+ * @route   GET /students/resources
+ * @access  Private (Student)
+ */
+router.get("/resources", async (req, res) => {
+  try {
+    const Resource = require("../models/Resource");
+    const resources = await Resource.find()
+      .sort({ createdAt: -1 })
+      .select("title url description createdAt");
+    res.json({ success: true, resources });
+  } catch (error) {
+    console.error("Failed to fetch resources for student:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch resources" });
+  }
+});
+
 module.exports = router;
