@@ -246,7 +246,8 @@ router.post('/:id/auto-submit', [
     const attemptNumber = 1;
 
     // Fallback: if quizStartTime is missing from session, use the session's updatedAt or now
-    const parsedTimeStarted = rawTimeStarted ? new Date(rawTimeStarted) : new Date(session.updatedAt || Date.now());
+    const sessionStart = new Date(rawTimeStarted || session.updatedAt || timeCompleted);
+    const parsedTimeStarted = new Date(Math.min(sessionStart.getTime(), new Date(timeCompleted).getTime()));
 
     // Calculate results
     let score = 0;
@@ -304,7 +305,7 @@ router.post('/:id/auto-submit', [
     await QuizSession.deleteOne({
       student: req.user._id,
       quiz: quiz._id
-    });
+    }).catch(error => console.error('Submission saved; session cleanup failed:', error));
 
     // Log activity and send notification
     await ActivityLog.logWithNotification({
@@ -315,7 +316,7 @@ router.post('/:id/auto-submit', [
       targetQuiz: quiz._id,
       notificationTitle: 'Quiz Auto-Submitted',
       notificationMessage: `Your quiz "${quiz.title}" was automatically submitted due to time expiry.`
-    });
+    }).catch(error => console.error('Submission saved; activity notification failed:', error));
 
     res.status(201).json({
       success: true,
@@ -359,10 +360,12 @@ router.post('/:id/submit', [
     const { quiz, error } = await validateQuizAccess(req.params.id, req.user);
     if (error) return errorResponse(res, error.includes('not found') ? 404 : 403, error);
 
-    const { answers, timeStarted, timeCompleted, attemptNumber } = req.body;
+    const { answers, timeStarted, attemptNumber } = req.body;
+    // Use the server clock: browser clocks can be ahead of the database validator.
+    const timeCompleted = new Date();
 
     // Validate timeStarted is a real date
-    const parsedTimeStarted = new Date(timeStarted);
+    const parsedTimeStarted = new Date(Math.min(new Date(timeStarted).getTime(), timeCompleted.getTime()));
     if (isNaN(parsedTimeStarted.getTime())) {
       return errorResponse(res, 400, 'Invalid timeStarted: could not parse as a date');
     }
@@ -430,7 +433,7 @@ router.post('/:id/submit', [
     await QuizSession.deleteOne({
       student: req.user._id,
       quiz: quiz._id
-    });
+    }).catch(error => console.error('Submission saved; session cleanup failed:', error));
 
     // Log activity and send notification
     await ActivityLog.logWithNotification({
@@ -441,7 +444,7 @@ router.post('/:id/submit', [
       targetQuiz: quiz._id,
       notificationTitle: 'Quiz Attempted',
       notificationMessage: `You attempted the quiz "${quiz.title}".`
-    });
+    }).catch(error => console.error('Submission saved; activity notification failed:', error));
 
     res.status(201).json({
       success: true,
@@ -462,6 +465,11 @@ router.post('/:id/submit', [
 
   } catch (error) {
     console.error('Error submitting quiz:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, error: 'Submission data is invalid',
+        errors: Object.values(error.errors).map(issue => ({ path: issue.path, msg: 'Invalid value for ' + issue.path }))
+      });
+    }
     errorResponse(res, 500, 'Failed to submit quiz');
   }
 });

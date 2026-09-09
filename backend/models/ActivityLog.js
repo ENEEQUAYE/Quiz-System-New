@@ -12,7 +12,7 @@ const ActivityLogSchema = new mongoose.Schema({
       // Shared actions
       'user_login', 'submission_created', 'submission_graded',
       // Student actions
-      'quiz_attempted', 'profile_updated', 'question_asked'
+      'quiz_attempted', 'quiz_auto_submitted', 'profile_updated', 'question_asked'
     ],
   },
   description: {

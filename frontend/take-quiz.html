@@ -400,6 +400,13 @@
             // Bootstrap modals
             const resultModal = new bootstrap.Modal(document.getElementById("resultModal"));
             const confirmationModal = new bootstrap.Modal(document.getElementById("confirmationModal"));
+            const confirmationElement = document.getElementById("confirmationModal");
+            confirmationElement.addEventListener("hide.bs.modal", () => {
+                if (confirmationElement.contains(document.activeElement)) document.activeElement.blur();
+            });
+            confirmationElement.addEventListener("hidden.bs.modal", () => {
+                if (!document.querySelector(".modal.show")) document.getElementById("submit-btn").focus();
+            });
             
             // Load quiz data
             loadQuiz();
@@ -760,11 +767,14 @@
                     },
                     body: JSON.stringify(submissionData),
                 })
-                    .then(response => {
+                    .then(async response => {
+                        const data = await response.json().catch(() => null);
                         if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
+                            const details = data?.errors?.map(issue => issue.msg).filter(Boolean).join("; ");
+                            throw new Error(details || data?.error || data?.message || ("HTTP error! Status: " + response.status));
                         }
-                        return response.json();
+                        if (!data) throw new Error("The server returned an invalid response");
+                        return data;
                     })
                     .then(data => {
                         hideLoading();
