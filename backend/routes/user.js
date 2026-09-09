@@ -3,13 +3,14 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const auth = require("../middleware/authMiddleware");
+const role = require("../middleware/role");
 
 // @desc    Get all users
 // @route   GET /api/users
 // @access  Private (Admin only)
-router.get("/", auth, async (req, res) => {
+router.get("/", auth, role("admin"), async (req, res) => {
   try {
-    const users = await User.find().sort("-createdAt");
+    const users = await User.find().select("firstName lastName email role status phone position profilePicture approvedBy approvedAt quizzesAllowed createdAt").sort("-createdAt");
 
     res.status(200).json({
       success: true,
@@ -28,7 +29,7 @@ router.get("/", auth, async (req, res) => {
 // @desc    Get pending students with pagination
 // @route   GET /api/users/pending
 // @access  Private (Admin)
-router.get('/pending', auth, async (req, res) => {
+router.get('/pending', auth, role("admin"), async (req, res) => {
   try {
     // Verify admin role
     if (req.user.role !== 'admin') {
@@ -75,7 +76,7 @@ router.get('/pending', auth, async (req, res) => {
 });
 
 //Get total pending students
-router.get('/pending/count', auth, async (req, res) => {
+router.get('/pending/count', auth, role("admin"), async (req, res) => {
   try {
     // Verify admin role
     if (req.user.role !== 'admin') {
@@ -95,7 +96,7 @@ router.get('/pending/count', auth, async (req, res) => {
 // @desc    Update student approval status
 // @route   PUT /api/users/:id/status
 // @access  Private (Admin)
-router.put('/:id/status', auth, async (req, res) => {
+router.put('/:id/status', auth, role("admin"), async (req, res) => {
   try {
     const { status } = req.body;
     const validStatuses = ['active', 'rejected']; // Matches your model enum
@@ -137,7 +138,7 @@ router.put('/:id/status', auth, async (req, res) => {
 // @desc    Create a new admin
 // @route   POST /api/users/admin
 // @access  Private (Admin only)
-router.post("/admin", auth, async (req, res) => {
+router.post("/admin", auth, role("admin"), async (req, res) => {
   try {
     const { firstName, lastName, email, password, phone, position } = req.body;
 
@@ -213,7 +214,7 @@ router.post("/admin", auth, async (req, res) => {
 // @desc    Delete user
 // @route   DELETE /api/users/:id
 // @access  Private (Admin only)
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:id", auth, role("admin"), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
 

@@ -8,9 +8,9 @@ const UserSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  resetPasswordToken: { type: String },
-  resetPasswordExpires: { type: Date },
+  password: { type: String, required: true, select: false },
+  resetPasswordToken: { type: String, select: false },
+  resetPasswordExpires: { type: Date, select: false },
   role: { type: String, enum: ['admin', 'student'], default: 'student' },
   status: { type: String, enum: ['pending', 'active', 'rejected'], default: 'pending' },
   profilePicture: { type: String, default: '' },
@@ -22,6 +22,16 @@ const UserSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// Also protect newly created or explicitly selected documents when serialized.
+UserSchema.set('toJSON', {
+  transform(doc, result) {
+    delete result.password;
+    delete result.resetPasswordToken;
+    delete result.resetPasswordExpires;
+    return result;
+  }
+});
+
 // Hash password before saving
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
@@ -31,7 +41,9 @@ UserSchema.pre('save', async function(next) {
 
 // Method to compare passwords
 UserSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  if (typeof candidatePassword !== 'string') return false;
+  const hash = this.password || (await this.constructor.findById(this._id).select('+password'))?.password;
+  return typeof hash === 'string' && await bcrypt.compare(candidatePassword, hash);
 };
 
 // Method to generate JWT token

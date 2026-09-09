@@ -2,39 +2,51 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const validator = require('validator');
 // const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const LoginSession = require('../models/LoginSession');
 const auth = require('../middleware/authMiddleware');
 const { sendMail } = require('../utils/mailer');
 
-// Register
+// Public registration accepts profile fields only; privileges are server-owned.
 router.post('/register', async (req, res) => {
   try {
-    const user = new User(req.body);
-    await user.save();
-
-    // For admin registration, auto-approve
-    if (user.role === 'admin') {
-      user.status = 'active';
-      await user.save();
+    const { firstName, lastName, email, password, phone, position } = req.body || {};
+    if (typeof firstName !== 'string' || !firstName.trim() ||
+        typeof lastName !== 'string' || !lastName.trim() ||
+        typeof email !== 'string' || !validator.isEmail(email.trim()) ||
+        typeof password !== 'string' || password.length < 6 ||
+        (phone !== undefined && typeof phone !== 'string') ||
+        (position !== undefined && typeof position !== 'string')) {
+      return res.status(400).json({ error: 'Provide your name, a valid email, and a password of at least 6 characters.' });
     }
-
-    // If student, record that admins should be notified (email disabled)
-    // Email sending was removed to avoid SMTP issues on hosting platforms.
-    // You can review admin notifications in the admin dashboard instead.
-
-    const token = await user.generateAuthToken();
-    res.status(201).json({ user, token });
+    const user = new User({
+      firstName: firstName.trim(), lastName: lastName.trim(),
+      email: email.trim().toLowerCase(), password, phone, position,
+      role: 'student', status: 'pending'
+    });
+    await user.save();
+    // Pending accounts receive no authenticated session.
+    return res.status(201).json({
+      user, message: 'Registration successful. An administrator must approve your account before you can sign in.'
+    });
   } catch (error) {
-    res.status(400).json(error);
+    if (error.code === 11000) return res.status(409).json({ error: 'An account with this email already exists.' });
+    if (error.name === 'ValidationError') return res.status(400).json({ error: 'Invalid registration details.' });
+    console.error('Registration failed:', error.name);
+    return res.status(500).json({ error: 'Unable to register. Please try again.' });
   }
 });
 
 // Login
 router.post('/login', async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email });
+    const { email, password } = req.body || {};
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Invalid login credentials' });
+    }
+    const user = await User.findOne({ email: email.trim().toLowerCase() }).select('+password');
     if (!user) {
       return res.status(400).json({ error: 'Invalid login credentials' });
     }
