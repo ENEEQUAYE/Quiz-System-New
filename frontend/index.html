@@ -108,6 +108,7 @@
  </style>
 
   <script src="js/config.js"></script>
+    <script src="js/login-session.js"></script>
   <script>
     // Use the API_URL from config.js instead of hardcoded URL
     const API_BASE_URL = API_URL;
@@ -251,7 +252,7 @@
           window.location.href = "admin-dashboard.html";
         } else if (data.user.role === "student" && data.user.status === "active") {
           console.log("Redirecting to student-dashboard.html");
-          window.location.href = "student-dashboard.html";
+          window.location.href = window.loginReturnUrl("student-dashboard.html");
         } else if (data.user.role === "student" && data.user.status !== "active") {
           console.log("Redirecting to pending-approval.html");
           window.location.href = "pending-approval.html";
@@ -276,7 +277,8 @@
     });
 
     // Check if user is already logged in
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!await window.loginSessionReady) return;
       const token = localStorage.getItem('token');
       const user = JSON.parse(localStorage.getItem('user') || '{}');
 

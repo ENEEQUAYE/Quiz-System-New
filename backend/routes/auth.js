@@ -4,6 +4,7 @@ const router = express.Router();
 const crypto = require('crypto');
 // const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const LoginSession = require('../models/LoginSession');
 const auth = require('../middleware/authMiddleware');
 const { sendMail } = require('../utils/mailer');
 
@@ -158,11 +159,33 @@ router.post('/reset-password', async (req, res) => {
 // Logout
 router.post('/logout', auth, async (req, res) => {
   try {
-    req.user.tokens = req.user.tokens.filter(token => token.token !== req.token);
-    await req.user.save();
+    await LoginSession.deleteOne({ _id: req.loginSession._id, user: req.user._id });
     res.json();
   } catch (error) {
     res.status(500).json();
+  }
+});
+
+// Reading session state does not extend inactivity.
+router.get('/session', auth, (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(req.loginSession.clientState());
+});
+
+// Called only in response to user interaction, never by background polling.
+router.post('/session/activity', auth, async (req, res) => {
+  try {
+    const now = new Date();
+    const session = await LoginSession.findOneAndUpdate(
+      LoginSession.activeFilter(req.loginSession._id, req.user._id, now),
+      { $max: { lastActivityAt: now } }, { new: true }
+    );
+    if (!session) return res.status(401).json({ error: 'Your session has expired.', code: 'SESSION_EXPIRED' });
+    res.set('Cache-Control', 'no-store');
+    return res.json(session.clientState());
+  } catch (error) {
+    console.error('Session activity update failed:', error);
+    return res.status(503).json({ error: 'Unable to update your session. Please retry.' });
   }
 });
 

@@ -355,6 +355,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Configuration -->
     <script src="js/config.js"></script>
+    <script src="js/login-session.js"></script>
     
     <script>
         document.addEventListener("DOMContentLoaded", () => {
@@ -396,6 +397,17 @@
             let sessionSaveInterval = null;
             let lastSaveTime = 0;
             const SAVE_INTERVAL = 10000; // Save every 10 seconds
+            const recoveryKey = 'quiz-recovery:' + (user.userId || user._id) + ':' + quizId;
+            window.addEventListener('login-session-ending', () => {
+                if (!quiz || !quizStartTime || resultData) return;
+                try {
+                    sessionStorage.setItem(recoveryKey, JSON.stringify({
+                        answers, flaggedQuestions, currentQuestionIndex, quizStartTime
+                    }));
+                } catch (error) { console.error('Unable to preserve quiz draft:', error); }
+                clearInterval(sessionSaveInterval);
+            });
+
             
             // Bootstrap modals
             const resultModal = new bootstrap.Modal(document.getElementById("resultModal"));
@@ -447,6 +459,15 @@
                     .then(sessionData => {
                         hideLoading();
                         
+                        let recovery = null;
+                        try { recovery = JSON.parse(sessionStorage.getItem(recoveryKey) || 'null'); } catch (_) {}
+                        // Recover only the same server attempt, never resurrect a completed quiz.
+                        if (recovery && sessionData.session &&
+                            recovery.quizStartTime === sessionData.session.quizStartTime &&
+                            recovery.answers.length === quiz.questions.length) {
+                            sessionData.session = recovery;
+                        }
+                        sessionStorage.removeItem(recoveryKey);
                         if (sessionData.success && sessionData.session) {
                             // Resume existing session
                             resumeQuizSession(sessionData.session);
@@ -559,6 +580,7 @@
             }
 
             function clearQuizSession() {
+                sessionStorage.removeItem(recoveryKey);
                 fetch(`${API_URL}/quizzes/${quizId}/session`, {
                     method: 'DELETE',
                     headers: {

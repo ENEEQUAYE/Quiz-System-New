@@ -2,6 +2,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const LoginSession = require('./LoginSession');
 
 const UserSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
@@ -35,11 +36,16 @@ UserSchema.methods.comparePassword = async function(candidatePassword) {
 
 // Method to generate JWT token
 UserSchema.methods.generateAuthToken = async function() {
+  const now = new Date();
+  const session = new LoginSession({
+    user: this._id, lastActivityAt: now,
+    expiresAt: new Date(now.getTime() + LoginSession.ABSOLUTE_MS)
+  });
   const token = jwt.sign(
-    { _id: this._id.toString(), role: this.role, status: this.status },
-    process.env.JWT_SECRET,
-    { expiresIn: '1d' } // Token expiration time
+    { _id: this._id.toString(), sid: session._id.toString(), role: this.role, status: this.status },
+    process.env.JWT_SECRET, { expiresIn: LoginSession.ABSOLUTE_MS / 1000 }
   );
+  await session.save();
   return token;
 };
 
