@@ -242,8 +242,12 @@ router.post('/:id/auto-submit', [
     // Use session data for submission
     const answers = session.answers || new Array(quiz.questions.length).fill(-1);
     const timeStarted = session.quizStartTime;
+    const rawTimeStarted = session.quizStartTime;
     const timeCompleted = new Date().toISOString();
     const attemptNumber = 1;
+
+    // Fallback: if quizStartTime is missing from session, use the session's updatedAt or now
+    const parsedTimeStarted = rawTimeStarted ? new Date(rawTimeStarted) : new Date(session.updatedAt || Date.now());
 
     // Calculate results
     let score = 0;
@@ -279,6 +283,8 @@ router.post('/:id/auto-submit', [
     const totalPossible = quiz.questions.reduce((sum, q) => sum + q.points, 0);
     const percentage = Math.round((score / totalPossible) * 100);
     const duration = Math.floor((new Date(timeCompleted) - new Date(timeStarted)) / 1000);
+    const percentage = totalPossible > 0 ? Math.min(100, Math.round((score / totalPossible) * 100)) : 0;
+    const duration = Math.max(0, Math.floor((new Date(timeCompleted) - parsedTimeStarted) / 1000));
 
     // Create submission
     const submission = new Submission({
@@ -291,6 +297,7 @@ router.post('/:id/auto-submit', [
       percentage,
       passed: percentage >= quiz.passingScore,
       timeStarted,
+      timeStarted: parsedTimeStarted,
       timeCompleted,
       duration,
     });
@@ -358,6 +365,12 @@ router.post('/:id/submit', [
 
     const { answers, timeStarted, timeCompleted, attemptNumber } = req.body;
 
+    // Validate timeStarted is a real date
+    const parsedTimeStarted = new Date(timeStarted);
+    if (isNaN(parsedTimeStarted.getTime())) {
+      return errorResponse(res, 400, 'Invalid timeStarted: could not parse as a date');
+    }
+
     // Validate answers length
     if (answers.length !== quiz.questions.length) {
       return errorResponse(res, 400, 
@@ -399,6 +412,8 @@ router.post('/:id/submit', [
     const totalPossible = quiz.questions.reduce((sum, q) => sum + q.points, 0);
     const percentage = Math.round((score / totalPossible) * 100);
     const duration = Math.floor((new Date(timeCompleted) - new Date(timeStarted)) / 1000);
+    const percentage = totalPossible > 0 ? Math.min(100, Math.round((score / totalPossible) * 100)) : 0;
+    const duration = Math.max(0, Math.floor((new Date(timeCompleted) - parsedTimeStarted) / 1000));
 
     // Create submission
     const submission = new Submission({
@@ -411,6 +426,7 @@ router.post('/:id/submit', [
       percentage,
       passed: percentage >= quiz.passingScore,
       timeStarted,
+      timeStarted: parsedTimeStarted,
       timeCompleted,
       duration,
     });
