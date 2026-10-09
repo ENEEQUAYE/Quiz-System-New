@@ -155,6 +155,18 @@ router.patch('/approvals/:id', [
  * Quiz Management Endpoints
  */
 
+// The bank includes existing and newly created quizzes without a backfill.
+router.get('/question-bank', async (req, res) => {
+  try {
+    const quizzes = await Quiz.find({}).sort({ order: 1, createdAt: 1 })
+      .select('title category difficulty questions').lean();
+    res.json({ success: true, data: quizzes });
+  } catch (error) {
+    console.error('Failed to load question bank:', error);
+    res.status(500).json({ success: false, error: 'Failed to load question bank' });
+  }
+});
+
 // Create new quiz with validation
 router.post('/quizzes', [
   check('title').trim().notEmpty().withMessage('Title is required')

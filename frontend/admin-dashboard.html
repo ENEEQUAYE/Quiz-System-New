@@ -38,7 +38,7 @@
                 <div class="menu-item" data-target="#students"><i class="fas fa-user-graduate"></i><span>Students</span></div>
                 <div class="menu-item" data-target="#approvals"><i class="fas fa-check-circle"></i><span>Pending Approvals</span></div>
                 <div class="menu-item" data-target="#quizzes"><i class="fas fa-question-circle"></i><span>Tests & Quizzes</span></div>
-                <div class="menu-item" data-target="#create-quiz"><i class="fas fa-plus-circle"></i><span>Create Quiz</span></div>
+                <div class="menu-item" data-target="#create-quiz"><i class="fas fa-plus-circle"></i><span>Create Quiz / Exam</span></div>
                 <div class="menu-item" data-target="#resources"><i class="fas fa-link"></i><span>Resources</span></div>
                 <div class="menu-item" data-target="#administrators"><i class="fas fa-user-tie"></i><span>Administrators</span></div>
 
@@ -452,6 +452,24 @@
                 </div>
                
 
+                <div class="card mb-4">
+                    <div class="card-header"><h5 class="card-title">Question Bank / Exam Builder</h5></div>
+                    <div class="card-body">
+                        <p>Select questions from any saved quizzes to build a combined exam. Added questions are independent copies.</p>
+                        <button type="button" class="btn btn-primary mb-3" id="load-question-bank">Browse Question Bank</button>
+                        <div id="question-bank-panel" hidden>
+                            <label for="question-bank-search" class="form-label">Search questions or quiz titles</label>
+                            <input id="question-bank-search" class="form-control mb-2" type="search">
+                            <label for="question-bank-quiz" class="form-label">Source quiz</label>
+                            <select id="question-bank-quiz" class="form-select mb-2"><option value="">All quizzes</option></select>
+                            <button type="button" id="question-bank-select" class="btn btn-outline-primary">Select visible questions</button>
+                            <button type="button" id="question-bank-clear" class="btn btn-outline-secondary">Clear selection</button>
+                            <button type="button" id="question-bank-add" class="btn btn-primary">Add selected questions</button>
+                            <p id="question-bank-count" class="mt-2" aria-live="polite"></p>
+                            <div id="question-bank-results" style="max-height: 420px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+                </div>
                 <!-- Questions card (Add questions, question type, options, correct answer) -->
                 <div class="card mb-4">
                     <div class="card-header">

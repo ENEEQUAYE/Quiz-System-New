@@ -739,7 +739,7 @@ window.setupModalFormHandlers = function() {
                                   <div class="input-group-text">
                                       <input type="radio" class="form-check-input correct-option" name="correctOption${uniqueId}">
                                   </div>
-                                  <input type="text" class="form-control option-input" value="${option}">
+                                  <input type="text" class="form-control option-input" value="${escapeBankText(option)}">
                               </div>
                           `).join("")}
                       </div>
@@ -964,7 +964,8 @@ function handleCreateQuiz() {
             questionType,
             options,
             correctAnswer,
-            points: 1, // Default points value
+            points: Number(questionItem.dataset.points || 1),
+            explanation: questionItem.dataset.explanation || "",
         };
     });
 
@@ -2041,6 +2042,8 @@ function handleStudentAction(e) {
 
     const questionItem = document.createElement("div")
     questionItem.className = "card question-item mb-3"
+    questionItem.dataset.points = questionData.points || 1
+    questionItem.dataset.explanation = questionData.explanation || ""
     questionItem.innerHTML = `
     <div class="card-header">
       <h5 class="card-title">Question</h5>
@@ -2058,7 +2061,7 @@ function handleStudentAction(e) {
       </div>
       <div class="mb-3">
         <label class="form-label">Question Text</label>
-        <textarea class="form-control question-text" rows="3" placeholder="Enter question text">${questionData.questionText}</textarea>
+        <textarea class="form-control question-text" rows="3" placeholder="Enter question text">${escapeBankText(questionData.questionText)}</textarea>
       </div>
       <div class="mb-3">
         <label class="form-label">Options</label>
@@ -2070,7 +2073,7 @@ function handleStudentAction(e) {
               <div class="input-group-text">
                 <input type="radio" class="form-check-input correct-option" name="correctOption${uniqueId}" ${index === questionData.correctAnswer ? "checked" : ""}>
               </div>
-              <input type="text" class="form-control option-input" placeholder="Option ${index + 1}" value="${option}">
+              <input type="text" class="form-control option-input" placeholder="Option ${index + 1}" value="${escapeBankText(option)}">
               <button type="button" class="btn remove-option-btn"><i class="fas fa-minus-circle"></i></button>
             </div>
           `,
@@ -2751,5 +2754,84 @@ function handleProfilePictureUpload(event) {
 
     // Initialize the dashboard
     init()
+// Selection stays intact when searching or switching source quizzes.
+(() => {
+    let entries = [];
+    const selected = new Set();
+    const search = document.getElementById('question-bank-search');
+    const source = document.getElementById('question-bank-quiz');
+    const results = document.getElementById('question-bank-results');
+    const browse = document.getElementById('load-question-bank');
+    if (!browse) return;
+    const visible = () => entries.filter(entry =>
+        (!source.value || entry.quizId === source.value) &&
+        (entry.title + ' ' + entry.question.questionText).toLowerCase().includes(search.value.toLowerCase().trim()));
+    function render() {
+        results.replaceChildren();
+        const matches = visible();
+        if (!matches.length) results.textContent = 'No questions found.';
+        for (const entry of matches) {
+            const label = document.createElement('label');
+            label.className = 'd-block border rounded p-3 mb-2';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'form-check-input me-2';
+            checkbox.checked = selected.has(entry.key);
+            checkbox.addEventListener('change', () => {
+                checkbox.checked ? selected.add(entry.key) : selected.delete(entry.key);
+                updateCount();
+            });
+            label.append(checkbox, document.createTextNode(entry.title + ': ' + entry.question.questionText));
+            const details = document.createElement('small');
+            details.className = 'd-block text-muted mt-2';
+            details.textContent = entry.question.options.join(' | ') + ' ? ' + entry.question.points + ' point(s)';
+            label.append(details);
+            results.append(label);
+        }
+        updateCount();
+    }
+    function updateCount() {
+        document.getElementById('question-bank-count').textContent = selected.size + ' selected; ' + visible().length + ' shown';
+        document.getElementById('question-bank-add').disabled = !selected.size;
+    }
+    browse.addEventListener('click', async () => {
+        browse.disabled = true;
+        try {
+            const response = await fetch(`${API_URL}/admin/question-bank`, { headers: { Authorization: `Bearer ${token}` } });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load question bank');
+            entries = data.data.flatMap(quiz => quiz.questions.map(question => ({
+                key: quiz._id + ':' + question._id, quizId: quiz._id, title: quiz.title, question
+            })));
+            selected.clear();
+            source.replaceChildren(new Option('All quizzes', ''));
+            data.data.forEach(quiz => source.add(new Option(quiz.title, quiz._id)));
+            document.getElementById('question-bank-panel').hidden = false;
+            render();
+        } catch (error) { showToast(error.message, 'danger'); }
+        finally { browse.disabled = false; }
+    });
+    search.addEventListener('input', render);
+    source.addEventListener('change', render);
+    document.getElementById('question-bank-select').addEventListener('click', () => {
+        visible().forEach(entry => selected.add(entry.key)); render();
+    });
+    document.getElementById('question-bank-clear').addEventListener('click', () => { selected.clear(); render(); });
+    document.getElementById('question-bank-add').addEventListener('click', () => {
+        const chosen = entries.filter(entry => selected.has(entry.key));
+        chosen.forEach(entry => addQuestionForEdit(entry.question));
+        selected.clear(); render();
+        showToast(chosen.length + ' questions added. Complete the exam details and save.', 'success');
+    });
+})();
+
 })
+
+
+
+function escapeBankText(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+}
 
